@@ -10,10 +10,28 @@ import pytz
 import math
 import telegram
 from collections import defaultdict, Counter
+import os
+import json
+from google_sheets import GoogleSheets
 
-# Load configuration
-with open('config.json') as config_file:
-    config = json.load(config_file)
+# Load configuration from environment variables
+config = {key: os.getenv(key) for key in [
+    "admin_telegram_id",
+    "attendance_threshold",
+    "google_sheets_credentials",
+    "notification_chat_id",
+    "spreadsheet_id",
+    "telegram_bot_token"
+]}
+
+# Parse Google Sheets credentials if stored as JSON string
+try:
+    google_sheets_credentials = json.loads(config["google_sheets_credentials"])
+except json.JSONDecodeError:
+    raise ValueError("Invalid JSON format in GOOGLE_SHEETS_CREDENTIALS environment variable.")
+
+# Initialize Google Sheets handler
+sheets = GoogleSheets(google_sheets_credentials, config["spreadsheet_id"])
 
 # Add this near the top of your file, after the config is loaded
 updater = Updater(config['telegram_bot_token'])
