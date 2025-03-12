@@ -7,17 +7,18 @@ import telegram
 logger = logging.getLogger(__name__)
 
 class GoogleSheets:
-    def __init__(self, credentials_path, spreadsheet_id, config):
+    def __init__(self, credentials_dict, spreadsheet_id, config):
         """Initializes the Google Sheets connection."""
         try:
-            # Load credentials from the specified path
+            # Load credentials from the provided dictionary
             self.credentials = Credentials.from_service_account_info(
-    credentials_path,  # Now passing dictionary directly
-    scopes=[
-        'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive'
-    ]
+                credentials_dict,  # Now correctly passing dictionary
+                scopes=[
+                    'https://www.googleapis.com/auth/spreadsheets',
+                    'https://www.googleapis.com/auth/drive'
+                ]
             )
+            
             self.client = gspread.authorize(self.credentials)
             self.spreadsheet = self.client.open_by_key(spreadsheet_id)
             self.sheet = self.spreadsheet.sheet1  # Or use a specific sheet name
@@ -25,9 +26,11 @@ class GoogleSheets:
             self.config = config  # Store the config
             self.bot = telegram.Bot(token=config['telegram_bot_token'])  # Initialize the bot
             print("Google Sheets connection initialized successfully.")
+        
         except Exception as e:
             print(f"Error initializing Google Sheets: {e}")
             raise
+
 
     def get_headers(self):
         """Retrieves the headers from the Google Sheet."""
