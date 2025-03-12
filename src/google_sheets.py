@@ -11,12 +11,12 @@ class GoogleSheets:
         """Initializes the Google Sheets connection."""
         try:
             # Load credentials from the specified path
-            self.credentials = Credentials.from_service_account_file(
-                credentials_path,
-                scopes=[
-                    'https://www.googleapis.com/auth/spreadsheets',
-                    'https://www.googleapis.com/auth/drive'
-                ]
+            self.credentials = Credentials.from_service_account_info(
+    credentials_path,  # Now passing dictionary directly
+    scopes=[
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive'
+    ]
             )
             self.client = gspread.authorize(self.credentials)
             self.spreadsheet = self.client.open_by_key(spreadsheet_id)
