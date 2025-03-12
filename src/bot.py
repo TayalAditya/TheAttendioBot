@@ -8,6 +8,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 import pytz
 import math
+import telegram
 from collections import defaultdict, Counter
 
 # Load configuration
@@ -1045,6 +1046,8 @@ def unblock_user(update: Update, context: CallbackContext) -> None:
             update.message.reply_text(f"User {user_id} is not blocked.")
     except (IndexError, ValueError):
         update.message.reply_text("Usage: <code>/unblock [user_id]</code>", parse_mode=ParseMode.HTML)
+
+
 def reply_to_user(update: Update, context: CallbackContext) -> None:
     """Admin command to reply to a user."""
     user = update.effective_user
@@ -1063,12 +1066,23 @@ def reply_to_user(update: Update, context: CallbackContext) -> None:
             )
             return
             
-        user_id = context.args[0]
+        try:
+            # Convert user_id to integer
+            user_id = int(context.args[0])
+        except ValueError:
+            update.message.reply_text("❌ Invalid user ID format. User ID must be a number.")
+            return
+            
         # Join all remaining args as the message
         message = ' '.join(context.args[1:])
         
         # Format the reply
         admin_reply = f"📬 <b>Reply from Admin:</b>\n\n{message}\n\n<i>To respond, use the /feedback command.</i>"
+        
+        # Check if user exists in our database
+        user_data = attendance_tracker.get_user_data(user_id)
+        if not user_data:
+            update.message.reply_text(f"⚠️ Warning: User {user_id} doesn't exist in database, but trying to send message anyway.")
         
         # Send the message to the user
         context.bot.send_message(
@@ -1080,9 +1094,16 @@ def reply_to_user(update: Update, context: CallbackContext) -> None:
         # Confirm to admin
         update.message.reply_text(f"✅ Reply sent to user {user_id}.")
         
+    except telegram.error.BadRequest as e:
+        if "chat not found" in str(e).lower():
+            update.message.reply_text(f"❌ Error: User {context.args[0]} hasn't interacted with the bot or has blocked it.")
+        else:
+            update.message.reply_text(f"❌ Telegram error: {str(e)}")
+        logger.error(f"BadRequest in reply_to_user: {str(e)}")
     except Exception as e:
         update.message.reply_text(f"❌ Error sending reply: {str(e)}")
         logger.error(f"Error in reply_to_user: {str(e)}")
+
 
 def main() -> None:
     updater = Updater(config['telegram_bot_token'])
@@ -1189,6 +1210,7 @@ def main() -> None:
     # Add these handlers in the main() function
     dispatcher.add_handler(CommandHandler("block", block_user))
     dispatcher.add_handler(CommandHandler("unblock", unblock_user))
+    dispatcher.add_handler(CommandHandler("reply", reply_to_user))
     dispatcher.add_handler(announce_handler)
     # Add handler for invalid inputs - this should be the last handler
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_invalid_input))
