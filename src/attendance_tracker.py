@@ -74,7 +74,9 @@ class AttendanceTracker:
     def add_new_course(self, user_id, user_name, course_code, course_nickname, present, absent, phone_number,streak=0):
         """Adds a new course for a user to the Google Sheet."""
         try:
-            self.google_sheets.add_row([user_id, user_name, course_code, course_nickname, present, absent, user_id, streak,phone_number])
+            now = datetime.now(pytz.timezone('Asia/Kolkata'))
+            timestamp = now.strftime('%Y-%m-%d %H:%M:%S')
+            self.google_sheets.add_row([user_id, user_name, course_code, course_nickname, present, absent, user_id, timestamp, streak, phone_number])
             print(f"New course added for user {user_id}: Course Code={course_code}, Nickname={course_nickname}")
         except Exception as e:
             print(f"Error adding new course: {e}")
