@@ -31,7 +31,7 @@ except json.JSONDecodeError:
     raise ValueError("Invalid JSON format in GOOGLE_SHEETS_CREDENTIALS environment variable.")
 
 # Initialize Google Sheets handler
-sheets = GoogleSheets(google_sheets_credentials, config["spreadsheet_id"])
+sheets = GoogleSheets(google_sheets_credentials, config["spreadsheet_id"], config)
 
 # Add this near the top of your file, after the config is loaded
 updater = Updater(config['telegram_bot_token'])
