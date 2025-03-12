@@ -1,4 +1,4 @@
-# Telegram Attendance Bot
+# The Attendio  Bot
 
 This project is a Telegram bot designed to track student attendance across different courses. The bot sends alerts when a student's attendance falls below 80% and allows for modifications in case of cancellations or extra classes. The backend for attendance data is managed using Google Sheets.
 
@@ -12,7 +12,7 @@ This project is a Telegram bot designed to track student attendance across diffe
 ## Project Structure
 
 ```
-telegram-attendance-bot
+TheAttendioBot
 ├── src
 │   ├── bot.py                # Main entry point for the Telegram bot
 │   ├── google_sheets.py      # Functions to interact with Google Sheets API
@@ -54,7 +54,3 @@ telegram-attendance-bot
 ## Contributing
 
 Feel free to submit issues or pull requests to improve the bot's functionality or fix bugs. 
-
-## License
-
-This project is licensed under the MIT License.
