@@ -134,7 +134,8 @@ def schedule_daily_logs(bot, admin_id):
         'cron', 
         hour=0, 
         minute=0,
-        args=[bot, admin_id, 24]
+        args=[bot, admin_id, 24],
+        timezone=pytz.UTC
     )
     scheduler.start()
     logging.info("Daily log scheduler initialized")
