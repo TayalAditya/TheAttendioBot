@@ -99,6 +99,44 @@ RATE_LIMIT_PERIOD = 60  # Seconds
 command_history = defaultdict(list)  # Track user command history
 blocked_users = set()  # Store blocked user IDs
 
+class User:
+    def __init__(self, user_id, user_name, chat_id, phone_number):
+        self.user_id = user_id
+        self.user_name = user_name
+        self.chat_id = chat_id
+        self.phone_number = phone_number
+        self.courses = {}
+        self.present = 0
+        self.absent = 0
+        self.last_updated = None
+        self.streak = 0
+
+    def add_course(self, course_code, course_nickname):
+        self.courses[course_code] = course_nickname
+
+    def update_attendance(self, present, absent, last_updated, streak):
+        self.present = present
+        self.absent = absent
+        self.last_updated = last_updated
+        self.streak = streak
+
+# Dictionary to store user objects
+users = {}
+
+# Function to get or create a user
+def get_or_create_user(user_id, user_name, chat_id, phone_number):
+    if user_id in users:
+        user = users[user_id]
+        # Update user information if necessary
+        user.user_name = user_name
+        user.chat_id = chat_id
+        user.phone_number = phone_number
+    else:
+        user = User(user_id, user_name, chat_id, phone_number)
+        users[user_id] = user
+    return user
+
+
 # Update the check rate limit function to auto-block users
 def check_rate_limit(update: Update) -> bool:
     """Check if a user has exceeded rate limits."""
@@ -220,7 +258,8 @@ def get_chat_id(update: Update, context: CallbackContext) -> None:
             attendance_tracker.update_user_chat_id(user.id, chat_id)
             update.message.reply_text(f"Your chat ID has been updated to {chat_id}.")
         else:
-            attendance_tracker.add_new_user(user.id, user.first_name, chat_id)
+            phone_number = user_data.get('Phone Number', '') if user_data else ''
+            attendance_tracker.add_new_user(user.id, user.first_name,phone_number)
             update.message.reply_text(f"Your chat ID has been saved as {chat_id}.")
     except Exception as e:
         update.message.reply_text(f"Error saving chat ID: {str(e)}")
@@ -385,6 +424,10 @@ def attendance_response(update: Update, context: CallbackContext) -> int:
         course_nickname = course_before['Course Nickname']
         present_before = int(course_before.get('Present', 0) or 0)
         absent_before = int(course_before.get('Absent', 0) or 0)
+        if(present_before+absent_before >0): 
+            initial_attendance = (present_before/(absent_before+present_before))*100
+        else:
+            initial_attendance = 100
         
         # Update attendance
         attendance_tracker.update_attendance(user_id, user.first_name, course_code, course_nickname, present_today)
@@ -412,7 +455,7 @@ def attendance_response(update: Update, context: CallbackContext) -> int:
             response_text += f"*Absent:* {absent_before} → {absent_after} ❌\n"
             
         response_text += f"*Total Classes:* {total_classes}\n"
-        response_text += f"*Attendance:* {attendance_percentage:.2f}%\n"
+        response_text += f"*Attendance:* {initial_attendance: .2f}% → {attendance_percentage:.2f}%\n"
         
         # Add streak if applicable
         if streak > 0:
@@ -450,7 +493,7 @@ def save_course(update: Update, context: CallbackContext) -> int:
 
     try:
         user_data = attendance_tracker.get_user_data(user_id)
-        chat_id = user_data.get('Chat ID', '') if user_data else ''
+        phone_number = user_data.get('Phone Number', '') if user_data else ''
 
         user_courses = attendance_tracker.get_user_courses(user_id)
         if any(course['Course Nickname'].lower() == course_nickname.lower() for course in user_courses):
@@ -460,7 +503,7 @@ def save_course(update: Update, context: CallbackContext) -> int:
             return ConversationHandler.END
 
         attendance_tracker.add_new_course(
-            user_id, user.first_name, course_code, course_nickname, 0, 0, chat_id
+            user_id, user.first_name, course_code, course_nickname, 0, 0, phone_number
         )
         
         # Get updated course list after adding
@@ -666,7 +709,10 @@ def edit_attendance_update(update: Update, context: CallbackContext) -> int:
             # Get initial values stored when editing began
             initial_present = context.user_data.get('initial_present', 0)
             initial_absent = context.user_data.get('initial_absent', 0)
-            
+            if(initial_present+initial_absent >0): 
+                initial_attendance = (initial_present/(initial_absent+initial_present))*100
+            else:
+                initial_attendance = 100
             # Update attendance
             attendance_tracker.update_attendance_manual(user_id, course_code, present, absent)
             
@@ -689,7 +735,7 @@ def edit_attendance_update(update: Update, context: CallbackContext) -> int:
                 response_text += f"*Absent:* {absent} ❌\n"
                 
             response_text += f"*Total Classes:* {total_classes}\n"
-            response_text += f"*Attendance:* {attendance_percentage:.2f}%"
+            response_text += f"*Attendance:* {initial_attendance: .2f}% → {attendance_percentage:.2f}%"
             
             query.edit_message_text(text=response_text, parse_mode=ParseMode.MARKDOWN)
             return ConversationHandler.END
@@ -839,10 +885,10 @@ def check_attendance(update: Update, context: CallbackContext) -> None:
             bar_length = 20
             if total_classes > 0:
                 filled_length = int(round(bar_length * present / total_classes))
-            else:
-                filled_length = 0  # Or any other default value you want to use when total_classes is zero
-            bar = '█' * filled_length + '-' * (bar_length - filled_length)
-            attendance_status += f"  📈 [{bar}] {attendance_percentage:.0f}%\n\n"
+            # else:
+            #     filled_length = 0  # Or any other default value you want to use when total_classes is zero
+                bar = '█' * filled_length + '-' * (bar_length - filled_length)
+                attendance_status += f"  📈 [{bar}] {attendance_percentage:.0f}%\n\n"
 
         update.message.reply_text(attendance_status, parse_mode=ParseMode.MARKDOWN)
 
@@ -1278,8 +1324,128 @@ def main() -> None:
     dispatcher.add_handler(announce_handler)
     # Add handler for invalid inputs - this should be the last handler
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_invalid_input))
-    # Set up scheduler
+
     scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Kolkata'))
+    scheduler.add_job(send_reminders, 'cron', hour=20, minute=15, timezone=pytz.timezone('Asia/Kolkata'))  # Example time
+#     scheduler.start()
+
+#     updater.start_polling()
+#     updater.idle()
+
+# if __name__ == '__main__':
+#     main()
+
+# def main() -> None:
+#     updater = Updater(config['telegram_bot_token'])
+#     dispatcher = updater.dispatcher
+
+#     # Start handler needs to be a conversation handler now
+#     start_handler = ConversationHandler(
+#         entry_points=[CommandHandler('start', start)],  # Don't rate limit start - new users need access
+#         states={
+#             PHONE_VERIFICATION: [MessageHandler(Filters.contact, handle_phone_number)]
+#         },
+#         fallbacks=[CommandHandler('cancel', cancel)]
+#     )
+    
+#     # Add separate verify command
+#     verify_handler = ConversationHandler(
+#         entry_points=[CommandHandler('verify', rate_limit_decorator(verify_command))],
+#         states={
+#             PHONE_VERIFICATION: [MessageHandler(Filters.contact, handle_phone_number)]
+#         },
+#         fallbacks=[CommandHandler('cancel', cancel)]
+#     )
+    
+#     # Define the feedback handler BEFORE adding it to the dispatcher
+#     feedback_handler = ConversationHandler(
+#         entry_points=[CommandHandler('feedback', feedback_start)],
+#         states={
+#             FEEDBACK_TEXT: [MessageHandler(Filters.text & ~Filters.command, save_feedback)]
+#         },
+#         fallbacks=[CommandHandler('cancel', cancel)],
+#     )
+    
+#     # Add handlers at the beginning
+#     dispatcher.add_handler(start_handler)
+#     dispatcher.add_handler(verify_handler)
+    
+#     # Register feedback handler next
+#     dispatcher.add_handler(feedback_handler)
+    
+#     # Apply rate limits to other conversation handlers
+#     mark_attendance_handler = ConversationHandler(
+#         entry_points=[CommandHandler('mark_attendance', rate_limit_decorator(mark_attendance_start))],
+#         states={
+#             SELECT_COURSE: [CallbackQueryHandler(course_selected)],
+#             MARK_ATTENDANCE: [CallbackQueryHandler(attendance_response, pattern='^[A-Za-z0-9-]+:[01]$')]
+#         },
+#         fallbacks=[CommandHandler('cancel', cancel)],
+#     )
+
+#     add_course_handler = ConversationHandler(
+#         entry_points=[CommandHandler('add_course', rate_limit_decorator(add_course_start))],
+#         states={
+#             ADD_COURSE_NAME: [MessageHandler(Filters.text & ~Filters.command, save_course)]
+#         },
+#         fallbacks=[CommandHandler('cancel', cancel)],
+#     )
+
+#     delete_course_handler = ConversationHandler(
+#         entry_points=[CommandHandler('delete_course', rate_limit_decorator(delete_course_start))],
+#         states={
+#             SELECT_COURSE: [CallbackQueryHandler(delete_course_confirm, pattern='^delete_confirm:.*$')],
+#             MARK_ATTENDANCE: [CallbackQueryHandler(delete_course, pattern='^delete:.*$'),
+#                               CallbackQueryHandler(cancel_delete, pattern='^cancel_delete$')]
+#         },
+#         fallbacks=[CommandHandler('cancel', cancel)],
+#     )
+
+#     edit_attendance_handler = ConversationHandler(
+#         entry_points=[CommandHandler('edit_attendance', rate_limit_decorator(edit_attendance_start))],
+#         states={
+#             SELECT_COURSE: [CallbackQueryHandler(edit_attendance_display, pattern='^edit_attendance:.*$')],
+#             MARK_ATTENDANCE: [CallbackQueryHandler(edit_attendance_update, pattern='^(increase_present|decrease_present|increase_absent|decrease_absent|done):.*$')],
+#         },
+#         fallbacks=[CommandHandler('cancel', cancel)],
+#     )
+
+#     # Phone verification also needs to be accessible
+#     phone_verification_handler = ConversationHandler(
+#         entry_points=[CommandHandler('verify_phone', request_phone_number)],
+#         states={
+#             PHONE_VERIFICATION: [MessageHandler(Filters.contact, handle_phone_number)]
+#         },
+#         fallbacks=[CommandHandler('cancel', cancel)],
+#     )
+#     # Add the announcement handler in main()
+#     announce_handler = ConversationHandler(
+#         entry_points=[CommandHandler('announce', announce_start)],
+#         states={
+#             ANNOUNCEMENT_TEXT: [MessageHandler(Filters.text & ~Filters.command, send_announcement)]
+#         },
+#         fallbacks=[CommandHandler('cancel', cancel)],
+#     )
+
+#     dispatcher.add_handler(mark_attendance_handler)
+#     dispatcher.add_handler(add_course_handler)
+#     dispatcher.add_handler(delete_course_handler)
+#     dispatcher.add_handler(edit_attendance_handler)
+#     dispatcher.add_handler(phone_verification_handler)  # No rate limit
+#     dispatcher.add_handler(CommandHandler("check_attendance", rate_limit_decorator(check_attendance)))
+#     dispatcher.add_handler(CommandHandler("get_chat_id", rate_limit_decorator(get_chat_id)))
+#     dispatcher.add_handler(CommandHandler("help", rate_limit_decorator(help_command)))
+#     dispatcher.add_handler(CommandHandler("manage_absences", rate_limit_decorator(manage_absences)))
+    
+#     # Add these handlers in the main() function
+#     dispatcher.add_handler(CommandHandler("block", block_user))
+#     dispatcher.add_handler(CommandHandler("unblock", unblock_user))
+#     dispatcher.add_handler(CommandHandler("reply", reply_to_user))
+#     dispatcher.add_handler(announce_handler)
+#     # Add handler for invalid inputs - this should be the last handler
+#     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_invalid_input))
+#     # Set up scheduler
+#     scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Kolkata'))
     scheduler.add_job(send_reminders, 'cron', hour=20, minute=35, timezone=pytz.timezone('Asia/Kolkata'))
     scheduler.start()
     
@@ -1307,7 +1473,7 @@ def main() -> None:
 
     
     scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Kolkata'))
-    scheduler.add_job(send_reminders, 'cron', hour=20, minute=35, timezone=pytz.timezone('Asia/Kolkata'))  # Example time
+    scheduler.add_job(send_reminders, 'cron', hour=20, minute=15, timezone=pytz.timezone('Asia/Kolkata'))  # Example time
     scheduler.start()
 
     updater.start_polling()
