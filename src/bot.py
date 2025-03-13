@@ -588,10 +588,10 @@ def delete_course(update: Update, context: CallbackContext) -> int:
             response += "📋 *Your remaining courses:*\n"
             for i, course in enumerate(updated_courses):
                 response += f"{i+1}. {course['Course Nickname']}\n"
+            query.edit_message_text(text=response, parse_mode=ParseMode.MARKDOWN)
         else:
             response += "You have no courses registered. Use /add_course to add a new course."
-        
-        query.edit_message_text(text=response, parse_mode=ParseMode.MARKDOWN)
+            query.edit_message_text(text=response)
         
     except Exception as e:
         query.edit_message_text(text=f"Error deleting course: {str(e)}")
