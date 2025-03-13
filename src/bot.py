@@ -1476,27 +1476,33 @@ def main() -> None:
     scheduler.start()
     
     # Start the bot differently based on environment
+    # Start the bot differently based on environment
     if os.getenv("RAILWAY_STATIC_URL"):
         # We're on Railway, use webhook
         print("Starting bot with webhook")
         PORT = int(os.getenv('PORT', '8080'))
-        WEBHOOK_URL = os.getenv('RAILWAY_STATIC_URL') + "/" + config['telegram_bot_token']
+        
+        # Clear any existing webhooks first
+        updater.bot.delete_webhook()
+        
+        # Make sure the URL format is correct
+        WEBHOOK_URL = os.getenv('RAILWAY_STATIC_URL') + "/bot" + config['telegram_bot_token']
         
         # Start webhook
         updater.start_webhook(
             listen="0.0.0.0",
             port=PORT,
-            url_path=config['telegram_bot_token'],
+            url_path="bot" + config['telegram_bot_token'],
             webhook_url=WEBHOOK_URL
         )
         print(f"Webhook set up on {WEBHOOK_URL}")
     else:
         # Local development - use polling
         print("Starting bot with polling")
-        updater.start_polling()
+        updater.bot.delete_webhook()  # Clear any webhooks first
+        updater.start_polling(clean=True)  # Use clean=True to drop pending updates
         
     updater.idle()
-
     
     scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Kolkata'))
     scheduler.add_job(send_reminders, 'cron', hour=20, minute=15, timezone=pytz.timezone('Asia/Kolkata'))  # Example time
