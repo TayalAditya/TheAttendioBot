@@ -301,7 +301,9 @@ def mark_attendance_start(update: Update, context: CallbackContext) -> int:
     user_id = update.message.from_user.id
     user_courses = attendance_tracker.get_user_courses(user_id)
 
-    if not user_courses:
+    valid_courses = [course for course in user_courses if course['Course Nickname'] and course['Course Nickname'].strip()]
+
+    if not valid_courses:
         update.message.reply_text('No courses found. Please add a new course first using /add_course command.')
         return ConversationHandler.END
 
@@ -530,8 +532,9 @@ def delete_course_start(update: Update, context: CallbackContext) -> int:
 
     try:
         user_courses = attendance_tracker.get_user_courses(user_id)
+        valid_courses = [course for course in user_courses if course['Course Nickname'] and course['Course Nickname'].strip()]
 
-        if not user_courses:
+        if not valid_courses:
             update.message.reply_text("No courses found. Please add a course first using /add_course.")
             return ConversationHandler.END
 
@@ -611,8 +614,9 @@ def edit_attendance_start(update: Update, context: CallbackContext) -> int:
 
     try:
         user_courses = attendance_tracker.get_user_courses(user_id)
+        valid_courses = [course for course in user_courses if course['Course Nickname'] and course['Course Nickname'].strip()]
 
-        if not user_courses:
+        if not valid_courses:
             update.message.reply_text("No courses found. Please add a course first using /add_course.")
             return ConversationHandler.END
 
@@ -833,8 +837,9 @@ def check_attendance(update: Update, context: CallbackContext) -> None:
 
     try:
         user_courses = attendance_tracker.get_user_courses(user_id)
+        valid_courses = [course for course in user_courses if course['Course Nickname'] and course['Course Nickname'].strip()]
 
-        if not user_courses:
+        if not valid_courses:
             update.message.reply_text("No courses found. Please add a course first using /add_course.")
             return
 
@@ -1019,8 +1024,9 @@ def manage_absences(update: Update, context: CallbackContext) -> None:
 
     try:
         safe_courses = attendance_tracker.calculate_safe_skip(user_id)
+        valid_courses = [course for course in safe_courses if course['Course Nickname'] and course['Course Nickname'].strip()]
 
-        if not safe_courses:
+        if not valid_courses:
             update.message.reply_text("Sorry, you can't skip any class safely right now.")
             return
 
