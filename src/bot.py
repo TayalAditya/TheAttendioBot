@@ -16,6 +16,15 @@ from collections import defaultdict, Counter
 def load_config():
     """Load config from environment variables or local file"""
     try:
+        # Debug environment variables
+        print("==== Environment Variable Check ====")
+        print(f"TELEGRAM_BOT_TOKEN: {'Present' if os.getenv('TELEGRAM_BOT_TOKEN') else 'MISSING'}")
+        print(f"GOOGLE_SHEETS_CREDENTIALS: {'Present' if os.getenv('GOOGLE_SHEETS_CREDENTIALS') else 'MISSING'}")
+        print(f"SPREADSHEET_ID: {'Present' if os.getenv('SPREADSHEET_ID') else 'MISSING'}")
+        print(f"ATTENDANCE_THRESHOLD: {'Present' if os.getenv('ATTENDANCE_THRESHOLD') else 'MISSING'}")
+        print(f"ADMIN_TELEGRAM_ID: {'Present' if os.getenv('ADMIN_TELEGRAM_ID') else 'MISSING'}")
+        print("===================================")
+        
         # First check if we're running with environment variables (Railway)
         if os.getenv("TELEGRAM_BOT_TOKEN") and os.getenv("GOOGLE_SHEETS_CREDENTIALS"):
             print("Loading config from environment variables")
@@ -35,10 +44,16 @@ def load_config():
                 "admin_telegram_id": os.getenv("ADMIN_TELEGRAM_ID", "")
             }
         else:
-            # Local development - use config.json
-            print("Loading config from config.json file")
-            with open('config.json') as config_file:
-                return json.load(config_file)
+            # If no environment variables, use emergency fallback config
+            print("WARNING: Environment variables not found!")
+            print("WARNING: Using fallback minimal configuration for testing only!")
+            return {
+                "telegram_bot_token": "YOUR_BOT_TOKEN",
+                "google_sheets_credentials": {},
+                "spreadsheet_id": "YOUR_SPREADSHEET_ID",
+                "attendance_threshold": 75.0,
+                "admin_telegram_id": "YOUR_ADMIN_ID"
+            }
     except Exception as e:
         print(f"Error loading config: {e}")
         raise
