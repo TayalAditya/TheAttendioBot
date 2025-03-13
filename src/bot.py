@@ -25,6 +25,8 @@ import pytz
 import math
 import telegram
 from collections import defaultdict, Counter
+from logger_config import setup_logging, send_logs_to_admin, schedule_daily_logs
+
 
 def load_config():
     """Load config from environment variables or local file"""
@@ -79,12 +81,10 @@ def load_config():
 # Load configuration
 config = load_config()
 
-# Set up logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 # Initialize the updater after we have the config
 updater = Updater(config['telegram_bot_token'])
+
+logger, telegram_handler = setup_logging()
 
 # Initialize Google Sheets and Attendance Tracker
 google_sheets = GoogleSheets(config['google_sheets_credentials'], config['spreadsheet_id'], config)
@@ -289,6 +289,7 @@ def help_command(update: Update, context: CallbackContext) -> None:
             "<code>/unblock [user_id]</code> - Unblock a previously blocked user\n"
             "<code>/reply [user_id] [message]</code> - Reply directly to a user\n"
             "<code>/announce</code> - Send an announcement to all users\n"
+            "<code>/logs [hours]</code> - Get logs for the last N hours (default: 24)\n"
         )
         help_text += admin_text
         update.message.reply_text(help_text, parse_mode=ParseMode.HTML)
@@ -1099,6 +1100,30 @@ def verify_command(update: Update, context: CallbackContext) -> int:
     """Command to manually re-verify phone number."""
     return request_phone_number(update, context)
 
+
+# Schedule daily logs to admin
+if 'admin_telegram_id' in config:
+    schedule_daily_logs(updater.bot, config['admin_telegram_id'])
+
+# Add this function for the admin to get logs
+def get_logs(update: Update, context: CallbackContext) -> None:
+    """Admin command to get logs."""
+    user = update.effective_user
+    
+    # Check if admin
+    if str(user.id) != str(config.get('admin_telegram_id')):
+        update.message.reply_text("⚠️ You don't have permission to use this command.")
+        return
+    
+    # Get hours parameter (default 24)
+    hours = 24
+    if context.args and context.args[0].isdigit():
+        hours = int(context.args[0])
+    
+    update.message.reply_text(f"Fetching logs from the last {hours} hours...")
+    send_logs_to_admin(context.bot, user.id, hours)
+
+
 # Block user function
 def block_user(update: Update, context: CallbackContext) -> None:
     """Admin command to block a user."""
@@ -1322,6 +1347,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("unblock", unblock_user))
     dispatcher.add_handler(CommandHandler("reply", reply_to_user))
     dispatcher.add_handler(announce_handler)
+    dispatcher.add_handler(CommandHandler("logs", get_logs))
     # Add handler for invalid inputs - this should be the last handler
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_invalid_input))
 
