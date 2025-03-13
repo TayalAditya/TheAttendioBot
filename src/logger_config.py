@@ -126,6 +126,7 @@ def send_logs_to_admin(bot, admin_id, hours=24):
 # Set up daily log sending
 def schedule_daily_logs(bot, admin_id):
     from apscheduler.schedulers.background import BackgroundScheduler
+    import pytz
     
     scheduler = BackgroundScheduler()
     # Send logs every day at midnight
