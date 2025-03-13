@@ -6,4 +6,4 @@ six==1.16.0
 urllib3<2
 pandas
 pytz==2023.3
-APScheduler==3.10.1
+APScheduler==3.6.3
