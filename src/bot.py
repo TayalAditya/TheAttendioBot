@@ -1,3 +1,18 @@
+#!/usr/bin/env python
+import os
+import sys
+
+# SURVIVAL MODE FOR BUILD PHASE
+# Check if this is running in a build environment
+if "RAILWAY_BUILD_ID" in os.environ or "BUILD_ID" in os.environ:
+    print("Detected build environment - skipping bot execution")
+    sys.exit(0)
+
+# If we're validating the install only
+if len(sys.argv) > 1 and sys.argv[1] == "--validate-install":
+    print("Installation validated successfully!")
+    sys.exit(0)
+    
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, ReplyKeyboardRemove, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, ConversationHandler, MessageHandler, Filters
@@ -9,15 +24,7 @@ from datetime import datetime, timedelta
 import pytz
 import math
 import telegram
-import os
 from collections import defaultdict, Counter
-
-import sys
-
-# If this is the first argument, just validate install and exit
-if len(sys.argv) > 1 and sys.argv[1] == "--validate-install":
-    print("Installation validated successfully!")
-    sys.exit(0)
 
 def load_config():
     """Load config from environment variables or local file"""
