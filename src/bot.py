@@ -307,7 +307,7 @@ def mark_attendance_start(update: Update, context: CallbackContext) -> int:
         update.message.reply_text('No courses found. Please add a new course first using /add_course command.')
         return ConversationHandler.END
 
-    keyboard = [[InlineKeyboardButton(course['Course Nickname'], callback_data=course['Course Code'])] for course in user_courses if course['Course Code']]
+    keyboard = [[InlineKeyboardButton(course['Course Nickname'], callback_data=course['Course Code'])] for course in valid_courses if course['Course Code']]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text('Please choose a course:', reply_markup=reply_markup)
     return SELECT_COURSE
@@ -418,7 +418,8 @@ def attendance_response(update: Update, context: CallbackContext) -> int:
     try:
         # Get course data before update
         user_courses = attendance_tracker.get_user_courses(user_id)
-        course_before = next((course for course in user_courses if course['Course Code'] == course_code), None)
+        valid_courses = [course for course in user_courses if is_valid_course(course)]
+        course_before = next((course for course in valid_courses if course['Course Code'] == course_code), None)
         
         if not course_before:
             query.edit_message_text(text="Course not found.")
