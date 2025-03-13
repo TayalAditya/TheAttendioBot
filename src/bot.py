@@ -1069,7 +1069,7 @@ def handle_phone_number(update: Update, context: CallbackContext) -> int:
             )
         else:
             # New user, create account with phone
-            attendance_tracker.add_new_user(user_id, user.first_name, chat_id, phone_number)
+            attendance_tracker.add_new_user(user_id, user.first_name, phone_number)
             update.message.reply_text(
                 "✅ Thank you! Your account has been created. Please add your first course using /add_course.",
                 reply_markup=ReplyKeyboardRemove()
