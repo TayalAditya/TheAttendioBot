@@ -1245,7 +1245,34 @@ def main() -> None:
     dispatcher.add_handler(announce_handler)
     # Add handler for invalid inputs - this should be the last handler
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_invalid_input))
+    # Set up scheduler
+    scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Kolkata'))
+    scheduler.add_job(send_reminders, 'cron', hour=20, minute=35, timezone=pytz.timezone('Asia/Kolkata'))
+    scheduler.start()
+    
+    # Start the bot differently based on environment
+    if os.getenv("RAILWAY_STATIC_URL"):
+        # We're on Railway, use webhook
+        print("Starting bot with webhook")
+        PORT = int(os.getenv('PORT', '8080'))
+        WEBHOOK_URL = os.getenv('RAILWAY_STATIC_URL') + "/" + config['telegram_bot_token']
+        
+        # Start webhook
+        updater.start_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            url_path=config['telegram_bot_token'],
+            webhook_url=WEBHOOK_URL
+        )
+        print(f"Webhook set up on {WEBHOOK_URL}")
+    else:
+        # Local development - use polling
+        print("Starting bot with polling")
+        updater.start_polling()
+        
+    updater.idle()
 
+    
     scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Kolkata'))
     scheduler.add_job(send_reminders, 'cron', hour=20, minute=35, timezone=pytz.timezone('Asia/Kolkata'))  # Example time
     scheduler.start()
