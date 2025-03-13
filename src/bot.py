@@ -484,47 +484,129 @@ def attendance_response(update: Update, context: CallbackContext) -> int:
     return ConversationHandler.END
 
 # Add course flow
+# def add_course_start(update: Update, context: CallbackContext) -> int:
+#     update.message.reply_text('Please enter the course nickname:')
+#     return ADD_COURSE_NAME
+
+# def save_course(update: Update, context: CallbackContext) -> int:
+#     context.user_data['course_nickname'] = update.message.text
+#     user = update.message.from_user
+#     user_id = user.id
+#     course_nickname = context.user_data['course_nickname']
+#     course_code = f"{user_id}-{course_nickname}"
+
+#     try:
+#         user_data = attendance_tracker.get_user_data(user_id)
+#         phone_number = user_data.get('Phone Number', '') if user_data else ''
+
+#         user_courses = attendance_tracker.get_user_courses(user_id)
+#         if any(course['Course Nickname'].lower() == course_nickname.lower() for course in user_courses):
+#             update.message.reply_text(
+#                 "This course nickname already exists. Please choose a different nickname by selecting /add_course or delete the currently existing course by /delete_course."
+#             )
+#             return ConversationHandler.END
+
+#         attendance_tracker.add_new_course(
+#             user_id, user.first_name, course_code, course_nickname, 0, 0, phone_number
+#         )
+        
+#         # Get updated course list after adding
+#         updated_courses = attendance_tracker.get_user_courses(user_id)
+        
+#         # Build response message
+#         response = f"Course '{course_nickname}' added successfully.\n\n"
+#         response += "📋 *Your registered courses:*\n"
+#         for i, course in enumerate(updated_courses):
+#             response += f"{i+1}. {course['Course Nickname']}\n"
+        
+#         update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+        
+#     except Exception as e:
+#         update.message.reply_text(f"Error adding course: {str(e)}")
+#         logger.error(f"Error in save_course: {str(e)}")
+#     return ConversationHandler.END
+
 def add_course_start(update: Update, context: CallbackContext) -> int:
-    update.message.reply_text('Please enter the course nickname:')
+    update.message.reply_text(
+        'Please enter the course nickname(s):\n\n'
+        'You can add multiple courses by putting each course on a new line.\n'
+        'For example:\n'
+        'DSA\n'
+        'DBMS\n'
+        'Computer Networks'
+    )
     return ADD_COURSE_NAME
 
 def save_course(update: Update, context: CallbackContext) -> int:
-    context.user_data['course_nickname'] = update.message.text
     user = update.message.from_user
     user_id = user.id
-    course_nickname = context.user_data['course_nickname']
-    course_code = f"{user_id}-{course_nickname}"
-
+    
+    # Split the input by newlines to get multiple course names
+    course_names = update.message.text.strip().split('\n')
+    
+    if not course_names or all(name.strip() == '' for name in course_names):
+        update.message.reply_text("Please enter at least one valid course nickname.")
+        return ConversationHandler.END
+    
     try:
         user_data = attendance_tracker.get_user_data(user_id)
         phone_number = user_data.get('Phone Number', '') if user_data else ''
-
+        
         user_courses = attendance_tracker.get_user_courses(user_id)
-        if any(course['Course Nickname'].lower() == course_nickname.lower() for course in user_courses):
-            update.message.reply_text(
-                "This course nickname already exists. Please choose a different nickname by selecting /add_course or delete the currently existing course by /delete_course."
+        existing_nicknames = [course['Course Nickname'].lower() for course in user_courses]
+        
+        added_courses = []
+        skipped_courses = []
+        
+        for course_nickname in course_names:
+            course_nickname = course_nickname.strip()
+            if not course_nickname:
+                continue
+                
+            if course_nickname.lower() in existing_nicknames:
+                skipped_courses.append(course_nickname)
+                continue
+                
+            course_code = f"{user_id}-{course_nickname}"
+            attendance_tracker.add_new_course(
+                user_id, user.first_name, course_code, course_nickname, 0, 0, phone_number
             )
-            return ConversationHandler.END
-
-        attendance_tracker.add_new_course(
-            user_id, user.first_name, course_code, course_nickname, 0, 0, phone_number
-        )
+            added_courses.append(course_nickname)
+            existing_nicknames.append(course_nickname.lower())
         
         # Get updated course list after adding
         updated_courses = attendance_tracker.get_user_courses(user_id)
         
         # Build response message
-        response = f"Course '{course_nickname}' added successfully.\n\n"
-        response += "📋 *Your registered courses:*\n"
-        for i, course in enumerate(updated_courses):
-            response += f"{i+1}. {course['Course Nickname']}\n"
+        if added_courses:
+            response = f"✅ Successfully added {len(added_courses)} course(s):\n"
+            for course in added_courses:
+                response += f"• {course}\n"
+                
+            response += "\n📋 *Your registered courses:*\n"
+            for i, course in enumerate(updated_courses):
+                response += f"{i+1}. {course['Course Nickname']}\n"
+                
+            if skipped_courses:
+                response += f"\n⚠️ Skipped {len(skipped_courses)} existing course(s):\n"
+                for course in skipped_courses:
+                    response += f"• {course}\n"
+        else:
+            if skipped_courses:
+                response = f"⚠️ All course(s) already exist:\n"
+                for course in skipped_courses:
+                    response += f"• {course}\n"
+            else:
+                response = "No valid courses were added."
         
         update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
         
     except Exception as e:
-        update.message.reply_text(f"Error adding course: {str(e)}")
+        update.message.reply_text(f"Error adding course(s): {str(e)}")
         logger.error(f"Error in save_course: {str(e)}")
+    
     return ConversationHandler.END
+
 
 # Add delete course flow
 def delete_course_start(update: Update, context: CallbackContext) -> int:
@@ -1031,7 +1113,7 @@ def manage_absences(update: Update, context: CallbackContext) -> None:
 
     try:
         safe_courses = attendance_tracker.calculate_safe_skip(user_id)
-        valid_courses = [course for course in user_courses if is_valid_course(course)]
+        valid_courses = [course for course in safe_courses if is_valid_course(course)]
 
         if not valid_courses:
             update.message.reply_text("Sorry, you can't skip any class safely right now.")
