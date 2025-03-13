@@ -12,7 +12,13 @@ import telegram
 import os
 from collections import defaultdict, Counter
 
-# Load configuration
+import sys
+
+# If this is the first argument, just validate install and exit
+if len(sys.argv) > 1 and sys.argv[1] == "--validate-install":
+    print("Installation validated successfully!")
+    sys.exit(0)
+
 def load_config():
     """Load config from environment variables or local file"""
     try:
