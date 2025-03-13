@@ -301,8 +301,8 @@ def mark_attendance_start(update: Update, context: CallbackContext) -> int:
     user_id = update.message.from_user.id
     user_courses = attendance_tracker.get_user_courses(user_id)
 
-    valid_courses = [course for course in user_courses if course['Course Nickname'] and course['Course Nickname'].strip()]
-
+    valid_courses = [course for course in user_courses if is_valid_course(course)]
+    
     if not valid_courses:
         update.message.reply_text('No courses found. Please add a new course first using /add_course command.')
         return ConversationHandler.END
@@ -532,7 +532,7 @@ def delete_course_start(update: Update, context: CallbackContext) -> int:
 
     try:
         user_courses = attendance_tracker.get_user_courses(user_id)
-        valid_courses = [course for course in user_courses if course['Course Nickname'] and course['Course Nickname'].strip()]
+        valid_courses = [course for course in user_courses if is_valid_course(course)]
 
         if not valid_courses:
             update.message.reply_text("No courses found. Please add a course first using /add_course.")
@@ -614,8 +614,8 @@ def edit_attendance_start(update: Update, context: CallbackContext) -> int:
 
     try:
         user_courses = attendance_tracker.get_user_courses(user_id)
-        valid_courses = [course for course in user_courses if course['Course Nickname'] and course['Course Nickname'].strip()]
-
+        valid_courses = [course for course in user_courses if is_valid_course(course)]
+        
         if not valid_courses:
             update.message.reply_text("No courses found. Please add a course first using /add_course.")
             return ConversationHandler.END
@@ -830,6 +830,12 @@ def calculate_classes_needed(present, absent, safe_zone_attendance):
     classes_left = max(0,math.floor((present- 4*absent)/4))
     return classes_needed, classes_left
 
+def is_valid_course(course):
+    return (course.get('Course Nickname') and 
+            course['Course Nickname'].strip() != '' and 
+            course.get('Course Code') and 
+            course['Course Code'].strip() != '')
+
 @rate_limit_decorator
 def check_attendance(update: Update, context: CallbackContext) -> None:
     user = update.message.from_user
@@ -837,7 +843,7 @@ def check_attendance(update: Update, context: CallbackContext) -> None:
 
     try:
         user_courses = attendance_tracker.get_user_courses(user_id)
-        valid_courses = [course for course in user_courses if course['Course Nickname'] and course['Course Nickname'].strip()]
+        valid_courses = [course for course in user_courses if is_valid_course(course)]
 
         if not valid_courses:
             update.message.reply_text("No courses found. Please add a course first using /add_course.")
@@ -1024,7 +1030,7 @@ def manage_absences(update: Update, context: CallbackContext) -> None:
 
     try:
         safe_courses = attendance_tracker.calculate_safe_skip(user_id)
-        valid_courses = [course for course in safe_courses if course['Course Nickname'] and course['Course Nickname'].strip()]
+        valid_courses = [course for course in user_courses if is_valid_course(course)]
 
         if not valid_courses:
             update.message.reply_text("Sorry, you can't skip any class safely right now.")
