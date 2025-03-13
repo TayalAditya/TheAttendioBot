@@ -9,36 +9,49 @@ from datetime import datetime, timedelta
 import pytz
 import math
 import telegram
-from collections import defaultdict, Counter
 import os
-import json
-from google_sheets import GoogleSheets
+from collections import defaultdict, Counter
 
-# Load configuration from environment variables
-config = {key: os.getenv(key) for key in [
-    "admin_telegram_id",
-    "attendance_threshold",
-    "google_sheets_credentials",
-    "notification_chat_id",
-    "spreadsheet_id",
-    "telegram_bot_token"
-]}
+# Load configuration
+def load_config():
+    """Load config from environment variables or local file"""
+    try:
+        # First check if we're running with environment variables (Railway)
+        if os.getenv("TELEGRAM_BOT_TOKEN") and os.getenv("GOOGLE_SHEETS_CREDENTIALS"):
+            print("Loading config from environment variables")
+            
+            # Parse Google Sheets credentials if stored as JSON string
+            try:
+                google_creds = json.loads(os.getenv("GOOGLE_SHEETS_CREDENTIALS"))
+            except json.JSONDecodeError:
+                raise ValueError("Invalid JSON format in GOOGLE_SHEETS_CREDENTIALS environment variable.")
+            
+            # Get other environment variables with defaults
+            return {
+                "telegram_bot_token": os.getenv("TELEGRAM_BOT_TOKEN"),
+                "google_sheets_credentials": google_creds,
+                "spreadsheet_id": os.getenv("SPREADSHEET_ID"),
+                "attendance_threshold": float(os.getenv("ATTENDANCE_THRESHOLD", "75.0")),
+                "admin_telegram_id": os.getenv("ADMIN_TELEGRAM_ID", "")
+            }
+        else:
+            # Local development - use config.json
+            print("Loading config from config.json file")
+            with open('config.json') as config_file:
+                return json.load(config_file)
+    except Exception as e:
+        print(f"Error loading config: {e}")
+        raise
 
-# Parse Google Sheets credentials if stored as JSON string
-try:
-    google_sheets_credentials = json.loads(config["google_sheets_credentials"])
-except json.JSONDecodeError:
-    raise ValueError("Invalid JSON format in GOOGLE_SHEETS_CREDENTIALS environment variable.")
-
-# Initialize Google Sheets handler
-sheets = GoogleSheets(google_sheets_credentials, config["spreadsheet_id"], config)
-
-# Add this near the top of your file, after the config is loaded
-updater = Updater(config['telegram_bot_token'])
+# Load configuration
+config = load_config()
 
 # Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Initialize the updater after we have the config
+updater = Updater(config['telegram_bot_token'])
 
 # Initialize Google Sheets and Attendance Tracker
 google_sheets = GoogleSheets(config['google_sheets_credentials'], config['spreadsheet_id'], config)
