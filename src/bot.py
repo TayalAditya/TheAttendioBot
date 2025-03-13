@@ -16,32 +16,37 @@ from collections import defaultdict, Counter
 def load_config():
     """Load config from environment variables or local file"""
     try:
+        # Check for environment variables (case-insensitive)
+        telegram_token = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("telegram_bot_token")
+        sheets_creds = os.getenv("GOOGLE_SHEETS_CREDENTIALS") or os.getenv("google_sheets_credentials")
+        spreadsheet = os.getenv("SPREADSHEET_ID") or os.getenv("spreadsheet_id")
+        threshold = os.getenv("ATTENDANCE_THRESHOLD") or os.getenv("attendance_threshold")
+        admin_id = os.getenv("ADMIN_TELEGRAM_ID") or os.getenv("admin_telegram_id")
+        
         # Debug environment variables
         print("==== Environment Variable Check ====")
-        print(f"TELEGRAM_BOT_TOKEN: {'Present' if os.getenv('TELEGRAM_BOT_TOKEN') else 'MISSING'}")
-        print(f"GOOGLE_SHEETS_CREDENTIALS: {'Present' if os.getenv('GOOGLE_SHEETS_CREDENTIALS') else 'MISSING'}")
-        print(f"SPREADSHEET_ID: {'Present' if os.getenv('SPREADSHEET_ID') else 'MISSING'}")
-        print(f"ATTENDANCE_THRESHOLD: {'Present' if os.getenv('ATTENDANCE_THRESHOLD') else 'MISSING'}")
-        print(f"ADMIN_TELEGRAM_ID: {'Present' if os.getenv('ADMIN_TELEGRAM_ID') else 'MISSING'}")
+        print(f"TELEGRAM_BOT_TOKEN: {'Present' if telegram_token else 'MISSING'}")
+        print(f"GOOGLE_SHEETS_CREDENTIALS: {'Present' if sheets_creds else 'MISSING'}")
+        print(f"SPREADSHEET_ID: {'Present' if spreadsheet else 'MISSING'}")
+        print(f"ATTENDANCE_THRESHOLD: {'Present' if threshold else 'MISSING'}")
+        print(f"ADMIN_TELEGRAM_ID: {'Present' if admin_id else 'MISSING'}")
         print("===================================")
         
-        # First check if we're running with environment variables (Railway)
-        if os.getenv("TELEGRAM_BOT_TOKEN") and os.getenv("GOOGLE_SHEETS_CREDENTIALS"):
+        if telegram_token and sheets_creds:
             print("Loading config from environment variables")
             
             # Parse Google Sheets credentials if stored as JSON string
             try:
-                google_creds = json.loads(os.getenv("GOOGLE_SHEETS_CREDENTIALS"))
+                google_creds = json.loads(sheets_creds)
             except json.JSONDecodeError:
                 raise ValueError("Invalid JSON format in GOOGLE_SHEETS_CREDENTIALS environment variable.")
             
-            # Get other environment variables with defaults
             return {
-                "telegram_bot_token": os.getenv("TELEGRAM_BOT_TOKEN"),
+                "telegram_bot_token": telegram_token,
                 "google_sheets_credentials": google_creds,
-                "spreadsheet_id": os.getenv("SPREADSHEET_ID"),
-                "attendance_threshold": float(os.getenv("ATTENDANCE_THRESHOLD", "75.0")),
-                "admin_telegram_id": os.getenv("ADMIN_TELEGRAM_ID", "")
+                "spreadsheet_id": spreadsheet,
+                "attendance_threshold": float(threshold or "75.0"),
+                "admin_telegram_id": admin_id or ""
             }
         else:
             # If no environment variables, use emergency fallback config
