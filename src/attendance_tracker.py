@@ -66,7 +66,12 @@ class AttendanceTracker:
             user_courses = []
             for row in data:
                 if str(row['User ID']).strip() == str(user_id).strip():
-                    user_courses.append(row)
+                    has_code = 'Course Code' in row and row.get('Course Code') and str(row.get('Course Code', '')).strip() != ""
+                    has_name = 'Course Nickname' in row and row.get('Course Nickname') and str(row.get('Course Nickname', '')).strip() != ""
+                
+                    if has_code and has_name:
+                        user_courses.append(row)
+                    
             return user_courses
         except Exception as e:
             print(f"Error retrieving user courses: {e}")
