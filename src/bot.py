@@ -1077,7 +1077,7 @@ def manage_absences(update: Update, context: CallbackContext) -> None:
             return
 
         message = "You can afford to skip these classes today:\n"
-        for course in safe_courses:
+        for course in valid_courses:
             message += f"- {course['Course Nickname']} ({course['Attendance']:.0f}%)\n"
 
         update.message.reply_text(message)
