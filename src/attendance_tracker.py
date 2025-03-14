@@ -106,7 +106,7 @@ class AttendanceTracker:
         """Update attendance for a user."""
         try:
             data = self.google_sheets.get_all_data()
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            timestamp = datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %H:%M:%S')
             
             for i, row in enumerate(data):
                 if str(row['User ID']).strip() == str(user_id).strip() and str(row['Course Code']).strip() == str(course_code).strip():
