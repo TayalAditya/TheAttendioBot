@@ -38,14 +38,14 @@ def load_config():
         threshold = os.getenv("ATTENDANCE_THRESHOLD") or os.getenv("attendance_threshold")
         admin_id = os.getenv("ADMIN_TELEGRAM_ID") or os.getenv("admin_telegram_id")
         
-        # Debug environment variables
-        print("==== Environment Variable Check ====")
-        print(f"TELEGRAM_BOT_TOKEN: {'Present' if telegram_token else 'MISSING'}")
-        print(f"GOOGLE_SHEETS_CREDENTIALS: {'Present' if sheets_creds else 'MISSING'}")
-        print(f"SPREADSHEET_ID: {'Present' if spreadsheet else 'MISSING'}")
-        print(f"ATTENDANCE_THRESHOLD: {'Present' if threshold else 'MISSING'}")
-        print(f"ADMIN_TELEGRAM_ID: {'Present' if admin_id else 'MISSING'}")
-        print("===================================")
+        # # Debug environment variables
+        # print("==== Environment Variable Check ====")
+        # print(f"TELEGRAM_BOT_TOKEN: {'Present' if telegram_token else 'MISSING'}")
+        # print(f"GOOGLE_SHEETS_CREDENTIALS: {'Present' if sheets_creds else 'MISSING'}")
+        # print(f"SPREADSHEET_ID: {'Present' if spreadsheet else 'MISSING'}")
+        # print(f"ATTENDANCE_THRESHOLD: {'Present' if threshold else 'MISSING'}")
+        # print(f"ADMIN_TELEGRAM_ID: {'Present' if admin_id else 'MISSING'}")
+        # print("===================================")
         
         if telegram_token and sheets_creds:
             print("Loading config from environment variables")
@@ -482,49 +482,6 @@ def attendance_response(update: Update, context: CallbackContext) -> int:
         query.edit_message_text(text=f"Error marking attendance: {str(e)}")
         logger.error(f"Error in attendance_response: {str(e)}")
     return ConversationHandler.END
-
-# Add course flow
-# def add_course_start(update: Update, context: CallbackContext) -> int:
-#     update.message.reply_text('Please enter the course nickname:')
-#     return ADD_COURSE_NAME
-
-# def save_course(update: Update, context: CallbackContext) -> int:
-#     context.user_data['course_nickname'] = update.message.text
-#     user = update.message.from_user
-#     user_id = user.id
-#     course_nickname = context.user_data['course_nickname']
-#     course_code = f"{user_id}-{course_nickname}"
-
-#     try:
-#         user_data = attendance_tracker.get_user_data(user_id)
-#         phone_number = user_data.get('Phone Number', '') if user_data else ''
-
-#         user_courses = attendance_tracker.get_user_courses(user_id)
-#         if any(course['Course Nickname'].lower() == course_nickname.lower() for course in user_courses):
-#             update.message.reply_text(
-#                 "This course nickname already exists. Please choose a different nickname by selecting /add_course or delete the currently existing course by /delete_course."
-#             )
-#             return ConversationHandler.END
-
-#         attendance_tracker.add_new_course(
-#             user_id, user.first_name, course_code, course_nickname, 0, 0, phone_number
-#         )
-        
-#         # Get updated course list after adding
-#         updated_courses = attendance_tracker.get_user_courses(user_id)
-        
-#         # Build response message
-#         response = f"Course '{course_nickname}' added successfully.\n\n"
-#         response += "📋 *Your registered courses:*\n"
-#         for i, course in enumerate(updated_courses):
-#             response += f"{i+1}. {course['Course Nickname']}\n"
-        
-#         update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
-        
-#     except Exception as e:
-#         update.message.reply_text(f"Error adding course: {str(e)}")
-#         logger.error(f"Error in save_course: {str(e)}")
-#     return ConversationHandler.END
 
 def add_course_start(update: Update, context: CallbackContext) -> int:
     update.message.reply_text(
@@ -1281,8 +1238,7 @@ def unblock_user(update: Update, context: CallbackContext) -> None:
 def reply_to_user(update: Update, context: CallbackContext) -> None:
     """Admin command to reply to a user."""
     user = update.effective_user
-    
-    # Check if admin
+
     if str(user.id) != str(config.get('admin_telegram_id')):
         update.message.reply_text("⚠️ You don't have permission to use this command.")
         return
@@ -1341,7 +1297,7 @@ def main() -> None:
 
     # Start handler needs to be a conversation handler now
     start_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],  # Don't rate limit start - new users need access
+        entry_points=[CommandHandler('start', start)],
         states={
             PHONE_VERIFICATION: [MessageHandler(Filters.contact, handle_phone_number)]
         },
@@ -1448,129 +1404,9 @@ def main() -> None:
 
     scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Kolkata'))
     scheduler.add_job(send_reminders, 'cron', hour=20, minute=15, timezone=pytz.timezone('Asia/Kolkata'))  # Example time
-#     scheduler.start()
-
-#     updater.start_polling()
-#     updater.idle()
-
-# if __name__ == '__main__':
-#     main()
-
-# def main() -> None:
-#     updater = Updater(config['telegram_bot_token'])
-#     dispatcher = updater.dispatcher
-
-#     # Start handler needs to be a conversation handler now
-#     start_handler = ConversationHandler(
-#         entry_points=[CommandHandler('start', start)],  # Don't rate limit start - new users need access
-#         states={
-#             PHONE_VERIFICATION: [MessageHandler(Filters.contact, handle_phone_number)]
-#         },
-#         fallbacks=[CommandHandler('cancel', cancel)]
-#     )
-    
-#     # Add separate verify command
-#     verify_handler = ConversationHandler(
-#         entry_points=[CommandHandler('verify', rate_limit_decorator(verify_command))],
-#         states={
-#             PHONE_VERIFICATION: [MessageHandler(Filters.contact, handle_phone_number)]
-#         },
-#         fallbacks=[CommandHandler('cancel', cancel)]
-#     )
-    
-#     # Define the feedback handler BEFORE adding it to the dispatcher
-#     feedback_handler = ConversationHandler(
-#         entry_points=[CommandHandler('feedback', feedback_start)],
-#         states={
-#             FEEDBACK_TEXT: [MessageHandler(Filters.text & ~Filters.command, save_feedback)]
-#         },
-#         fallbacks=[CommandHandler('cancel', cancel)],
-#     )
-    
-#     # Add handlers at the beginning
-#     dispatcher.add_handler(start_handler)
-#     dispatcher.add_handler(verify_handler)
-    
-#     # Register feedback handler next
-#     dispatcher.add_handler(feedback_handler)
-    
-#     # Apply rate limits to other conversation handlers
-#     mark_attendance_handler = ConversationHandler(
-#         entry_points=[CommandHandler('mark_attendance', rate_limit_decorator(mark_attendance_start))],
-#         states={
-#             SELECT_COURSE: [CallbackQueryHandler(course_selected)],
-#             MARK_ATTENDANCE: [CallbackQueryHandler(attendance_response, pattern='^[A-Za-z0-9-]+:[01]$')]
-#         },
-#         fallbacks=[CommandHandler('cancel', cancel)],
-#     )
-
-#     add_course_handler = ConversationHandler(
-#         entry_points=[CommandHandler('add_course', rate_limit_decorator(add_course_start))],
-#         states={
-#             ADD_COURSE_NAME: [MessageHandler(Filters.text & ~Filters.command, save_course)]
-#         },
-#         fallbacks=[CommandHandler('cancel', cancel)],
-#     )
-
-#     delete_course_handler = ConversationHandler(
-#         entry_points=[CommandHandler('delete_course', rate_limit_decorator(delete_course_start))],
-#         states={
-#             SELECT_COURSE: [CallbackQueryHandler(delete_course_confirm, pattern='^delete_confirm:.*$')],
-#             MARK_ATTENDANCE: [CallbackQueryHandler(delete_course, pattern='^delete:.*$'),
-#                               CallbackQueryHandler(cancel_delete, pattern='^cancel_delete$')]
-#         },
-#         fallbacks=[CommandHandler('cancel', cancel)],
-#     )
-
-#     edit_attendance_handler = ConversationHandler(
-#         entry_points=[CommandHandler('edit_attendance', rate_limit_decorator(edit_attendance_start))],
-#         states={
-#             SELECT_COURSE: [CallbackQueryHandler(edit_attendance_display, pattern='^edit_attendance:.*$')],
-#             MARK_ATTENDANCE: [CallbackQueryHandler(edit_attendance_update, pattern='^(increase_present|decrease_present|increase_absent|decrease_absent|done):.*$')],
-#         },
-#         fallbacks=[CommandHandler('cancel', cancel)],
-#     )
-
-#     # Phone verification also needs to be accessible
-#     phone_verification_handler = ConversationHandler(
-#         entry_points=[CommandHandler('verify_phone', request_phone_number)],
-#         states={
-#             PHONE_VERIFICATION: [MessageHandler(Filters.contact, handle_phone_number)]
-#         },
-#         fallbacks=[CommandHandler('cancel', cancel)],
-#     )
-#     # Add the announcement handler in main()
-#     announce_handler = ConversationHandler(
-#         entry_points=[CommandHandler('announce', announce_start)],
-#         states={
-#             ANNOUNCEMENT_TEXT: [MessageHandler(Filters.text & ~Filters.command, send_announcement)]
-#         },
-#         fallbacks=[CommandHandler('cancel', cancel)],
-#     )
-
-#     dispatcher.add_handler(mark_attendance_handler)
-#     dispatcher.add_handler(add_course_handler)
-#     dispatcher.add_handler(delete_course_handler)
-#     dispatcher.add_handler(edit_attendance_handler)
-#     dispatcher.add_handler(phone_verification_handler)  # No rate limit
-#     dispatcher.add_handler(CommandHandler("check_attendance", rate_limit_decorator(check_attendance)))
-#     dispatcher.add_handler(CommandHandler("get_chat_id", rate_limit_decorator(get_chat_id)))
-#     dispatcher.add_handler(CommandHandler("help", rate_limit_decorator(help_command)))
-#     dispatcher.add_handler(CommandHandler("manage_absences", rate_limit_decorator(manage_absences)))
-    
-#     # Add these handlers in the main() function
-#     dispatcher.add_handler(CommandHandler("block", block_user))
-#     dispatcher.add_handler(CommandHandler("unblock", unblock_user))
-#     dispatcher.add_handler(CommandHandler("reply", reply_to_user))
-#     dispatcher.add_handler(announce_handler)
-#     # Add handler for invalid inputs - this should be the last handler
-#     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_invalid_input))
-#     # Set up scheduler
-#     scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Kolkata'))
     scheduler.add_job(send_reminders, 'cron', hour=20, minute=35, timezone=pytz.timezone('Asia/Kolkata'))
     scheduler.start()
     
-    # Start the bot differently based on environment
     # Start the bot differently based on environment
     if os.getenv("RAILWAY_STATIC_URL"):
         # We're on Railway, use webhook
@@ -1600,7 +1436,7 @@ def main() -> None:
     updater.idle()
     
     scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Kolkata'))
-    scheduler.add_job(send_reminders, 'cron', hour=20, minute=15, timezone=pytz.timezone('Asia/Kolkata'))  # Example time
+    scheduler.add_job(send_reminders, 'cron', hour=20, minute=15, timezone=pytz.timezone('Asia/Kolkata'))
     scheduler.start()
 
     updater.start_polling()
