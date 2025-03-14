@@ -15,7 +15,7 @@ class TelegramLogHandler(logging.Handler):
     def __init__(self):
         super().__init__()
         self.log_records = []
-        self.max_records = 1000  # Keep only last 1000 records in memory
+        self.max_records = 10000
     
     def emit(self, record):
         log_entry = self.format(record)
@@ -56,6 +56,7 @@ def setup_logging():
 
 # Function to send logs via Telegram
 def send_logs_to_admin(bot, admin_id, hours=24):
+    import pytz
     try:
         # Get handler
         for handler in logging.getLogger().handlers:
@@ -67,7 +68,7 @@ def send_logs_to_admin(bot, admin_id, hours=24):
             return
         
         # Get logs from the last N hours
-        cutoff_time = datetime.now() - timedelta(hours=hours)
+        cutoff_time = datetime.now(pytz.timezone('Asia/Kolkata')) - timedelta(hours=hours)
         cutoff_str = cutoff_time.strftime("%Y-%m-%d %H:%M:%S")
         
         # Filter logs based on timestamp
