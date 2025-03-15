@@ -1429,7 +1429,7 @@ try:
         send_reminders, 
         'cron', 
         hour=15, 
-        minute=05, 
+        minute=5, 
         timezone=asia_tz
     )
      logger.info(f"Scheduled second reminder job at 20:35 IST (job id: {first_job.id})")
