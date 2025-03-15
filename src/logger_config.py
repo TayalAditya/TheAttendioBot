@@ -10,6 +10,8 @@ from telegram import ParseMode
 LOG_FILE = "attendio_bot.log"
 log_buffer = io.StringIO()  # In-memory buffer for logs
 
+IST_TIMEZONE = pytz.timezone('Asia/Kolkata')
+
 class TelegramLogHandler(logging.Handler):
     """Custom log handler that collects logs to be sent via Telegram"""
     def __init__(self):
@@ -34,7 +36,10 @@ def setup_logging():
     # Create a logger
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    
+
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+            
     # Create our custom handler
     telegram_handler = TelegramLogHandler()
     telegram_handler.setLevel(logging.INFO)
@@ -42,7 +47,16 @@ def setup_logging():
     # Create a console handler with higher log level
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
-    
+
+    class ISTFormatter(logging.Formatter):
+        def formatTime(self, record, datefmt=None):
+            # Convert to IST
+            dt = datetime.fromtimestamp(record.created, IST_TIMEZONE)
+            if datefmt:
+                return dt.strftime(datefmt)
+            else:
+                return dt.strftime("%Y-%m-%d %H:%M:%S,%f")[:-3] + " IST"
+                
     # Create formatter and add it to the handlers
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     telegram_handler.setFormatter(formatter)
@@ -51,6 +65,9 @@ def setup_logging():
     # Add the handlers to the logger
     logger.addHandler(telegram_handler)
     logger.addHandler(console_handler)
+
+    logger.info("========== LOGGING SYSTEM STARTED ==========")
+    logger.info(f"Current time in IST: {datetime.now(IST_TIMEZONE).strftime('%Y-%m-%d %H:%M:%S')}")
     
     return logger, telegram_handler
 
@@ -58,6 +75,8 @@ def setup_logging():
 def send_logs_to_admin(bot, admin_id, hours=24):
     import pytz
     try:
+        logging.info(f"Collecting logs from the last {hours} hours for admin")
+        
         # Get handler
         for handler in logging.getLogger().handlers:
             if isinstance(handler, TelegramLogHandler):
@@ -78,6 +97,7 @@ def send_logs_to_admin(bot, admin_id, hours=24):
             try:
                 log_time_str = log.split(' - ')[0]
                 log_time = datetime.strptime(log_time_str, "%Y-%m-%d %H:%M:%S,%f")
+                log_time = IST_TIMEZONE.localize(log_time)
                 if log_time >= cutoff_time:
                     recent_logs.append(log)
             except (ValueError, IndexError):
@@ -89,6 +109,7 @@ def send_logs_to_admin(bot, admin_id, hours=24):
                 chat_id=admin_id, 
                 text=f"No logs found from the last {hours} hours."
             )
+            logging.info("No logs to send")
             return
         
         # Split logs into chunks (Telegram has a message limit)
@@ -126,20 +147,29 @@ def send_logs_to_admin(bot, admin_id, hours=24):
 
 # Set up daily log sending
 def schedule_daily_logs(bot, admin_id):
+    """Schedule daily logs to be sent to admin at 5:30 PM IST."""
     from apscheduler.schedulers.background import BackgroundScheduler
     import pytz
     
-    scheduler = BackgroundScheduler()
-    # Send logs every day at midnight
-    scheduler.add_job(
-        send_logs_to_admin, 
-        'cron', 
-        hour=0, 
-        minute=0,
-        args=[bot, admin_id, 24],
-        timezone=pytz.UTC
-    )
-    scheduler.start()
-    logging.info("Daily log scheduler initialized")
-    
-    return scheduler
+    try:
+        # Create scheduler with explicit timezone
+        asia_tz = pytz.timezone('Asia/Kolkata')
+        scheduler = BackgroundScheduler()
+        
+        # Schedule log delivery at 5:30 PM IST daily
+        job = scheduler.add_job(
+            send_logs_to_admin, 
+            'cron', 
+            hour=17,  # 5 PM in 24-hour format
+            minute=30,  # 30 minutes past the hour
+            args=[bot, admin_id, 24],  # Send last 24 hours of logs
+            timezone=asia_tz
+        )
+        
+        scheduler.start()
+        logging.info(f"Daily log delivery scheduled for 5:30 PM IST (job id: {job.id})")
+        
+        return scheduler
+    except Exception as e:
+        logging.error(f"Failed to schedule daily logs: {str(e)}")
+        return None
