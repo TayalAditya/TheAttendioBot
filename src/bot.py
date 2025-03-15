@@ -1521,42 +1521,46 @@ def main() -> None:
     # Add handler for invalid inputs - this should be the last handler
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_invalid_input))
     
-try:
-    asia_tz = pytz.timezone('Asia/Kolkata')
-    scheduler = BackgroundScheduler()
-
-    # Add a test job right after the scheduler start to run 1 minute later
-    test_time = datetime.now(pytz.timezone('Asia/Kolkata')) + timedelta(minutes=1)
-    scheduler.add_job(
-        send_reminders,
-        'date',  # Run once at specific time
-        run_date=test_time,
-        id='test_reminder'
-    )
-    logger.info(f"Added test reminder job to run at {test_time.strftime('%H:%M:%S')}")
-
-    first_job = scheduler.add_job(
-        send_reminders, 
-        'cron', 
-        hour=20, 
-        minute=15, 
-        timezone=asia_tz
-    )
-    logger.info(f"Scheduled first reminder job at 20:15 IST (job id: {first_job.id})")
-    second_job = scheduler.add_job(
-        send_reminders, 
-        'cron', 
-        hour=20, 
-        minute=15, 
-        timezone=asia_tz
-    )
-    scheduler.start()
-    logger.info("Scheduled reminders set for 8:15 PM IST")
-except Exception as e:
-    logger.error(f"Failed to start scheduler: {str(e)}")
-    logger.exception("Scheduler error details:")
-
-
+    try:
+        asia_tz = pytz.timezone('Asia/Kolkata')
+        scheduler = BackgroundScheduler()
+    
+        # Add a test job right after the scheduler start to run 1 minute later
+        test_time = datetime.now(pytz.timezone('Asia/Kolkata')) + timedelta(minutes=1)
+        scheduler.add_job(
+            send_reminders,
+            'date',  # Run once at specific time
+            run_date=test_time,
+            timezone=asia_tz,  # Add this timezone parameter
+            id='test_reminder'
+        )
+        logger.info(f"Added test reminder job to run at {test_time.strftime('%H:%M:%S')}")
+    
+        first_job = scheduler.add_job(
+            send_reminders, 
+            'cron', 
+            hour=20, 
+            minute=15, 
+            timezone=asia_tz
+        )
+        logger.info(f"Scheduled first reminder job at 20:15 IST (job id: {first_job.id})")
+        
+        second_job = scheduler.add_job(
+            send_reminders, 
+            'cron', 
+            hour=20, 
+            minute=35,  # Changed from 15 to 35 for second job
+            timezone=asia_tz
+        )
+        logger.info(f"Scheduled second reminder job at 20:35 IST (job id: {second_job.id})")
+        
+        scheduler.start()
+        logger.info("Scheduled reminders set for 8:15 PM and 8:35 PM IST")
+    except Exception as e:
+        logger.error(f"Failed to start scheduler: {str(e)}")
+        logger.exception("Scheduler error details:")
+    
+    
     # Start the bot differently based on environment
     if os.getenv("RAILWAY_STATIC_URL"):
         # We're on Railway, use webhook
@@ -1581,12 +1585,12 @@ except Exception as e:
         # Local development - use polling
         print("Starting bot with polling")
         updater.bot.delete_webhook()  # Clear any webhooks first
-        updater.start_polling(clean=True)  # Use clean=True to drop pending updates
+        updater.start_polling(drop_pending_updates=True)  # Use drop_pending_updates instead of clean
         
+    # Only need one idle() call
     updater.idle()
 
-    updater.start_polling()
-    updater.idle()
+# Remove the duplicate start_polling and idle calls
 
 if __name__ == '__main__':
     main()
