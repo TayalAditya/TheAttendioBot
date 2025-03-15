@@ -862,8 +862,8 @@ def send_reminders():
                         else:
                             attendance_status += f"  You are in the safe zone. Keep up the good work! ✅ \n <i>Be Alert:</i> Leaving even 1 class can put you in low attendance.\n"
                         attendance_status += "\n"
-            except Exception as e:
-                    logging.error(f"Error processing course {course_nickname} for user {user_id}: {e}")
+                except Exception as e:
+                        logging.error(f"Error processing course {course_nickname} for user {user_id}: {e}")
 
             attendance_status += f"Please mark your attendance using /mark_attendance command if not updated for {datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%d.%B')}.\n"
             chat_id = courses[0].get('Chat ID')
