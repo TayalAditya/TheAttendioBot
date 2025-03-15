@@ -848,20 +848,20 @@ def send_reminders():
                     total_classes = present + absent
                     attendance_percentage = (present / total_classes) * 100 if total_classes > 0 else 100.0
 
-                if attendance_percentage < attendance_tracker.attendance_threshold:
-                    attendance_status += f"<b>{i + 1}. {course_nickname}:</b> ⚠️\n"
-                    attendance_status += f"  <b>Attendance:</b> {attendance_percentage:.2f}%\n"
-                    attendance_status += f"  You need to attend <b>at least {4*absent - present} more</b> classes to cross the 80% threshold.\n"
-                    attendance_status += "\n"
-                else:
-                    attendance_status += f"<b>{i + 1}. {course_nickname}:</b> ✅\n"
-                    attendance_status += f"  <b>Attendance:</b> {attendance_percentage:.2f}%\n"
-                    classes_left=max(0,math.floor((present- 4*absent)/4))
-                    if classes_left >= 1:
-                        attendance_status += f"  You can leave <b>{classes_left} more</b> classes & still cross the 80% threshold.\n"
+                    if attendance_percentage < attendance_tracker.attendance_threshold:
+                        attendance_status += f"<b>{i + 1}. {course_nickname}:</b> ⚠️\n"
+                        attendance_status += f"  <b>Attendance:</b> {attendance_percentage:.2f}%\n"
+                        attendance_status += f"  You need to attend <b>at least {4*absent - present} more</b> classes to cross the 80% threshold.\n"
+                        attendance_status += "\n"
                     else:
-                        attendance_status += f"  You are in the safe zone. Keep up the good work! ✅ \n <i>Be Alert:</i> Leaving even 1 class can put you in low attendance.\n"
-                    attendance_status += "\n"
+                        attendance_status += f"<b>{i + 1}. {course_nickname}:</b> ✅\n"
+                        attendance_status += f"  <b>Attendance:</b> {attendance_percentage:.2f}%\n"
+                        classes_left=max(0,math.floor((present- 4*absent)/4))
+                        if classes_left >= 1:
+                            attendance_status += f"  You can leave <b>{classes_left} more</b> classes & still cross the 80% threshold.\n"
+                        else:
+                            attendance_status += f"  You are in the safe zone. Keep up the good work! ✅ \n <i>Be Alert:</i> Leaving even 1 class can put you in low attendance.\n"
+                        attendance_status += "\n"
             except Exception as e:
                     logging.error(f"Error processing course {course_nickname} for user {user_id}: {e}")
 
