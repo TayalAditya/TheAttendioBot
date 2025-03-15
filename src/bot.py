@@ -1421,18 +1421,18 @@ def main() -> None:
     # Add handler for invalid inputs - this should be the last handler
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_invalid_input))
     
-    
-    scheduler = BackgroundScheduler()
 try:
     asia_tz = pytz.timezone('Asia/Kolkata')
+    scheduler = BackgroundScheduler()
+    
     first_job = scheduler.add_job(
         send_reminders, 
         'cron', 
         hour=15, 
-        minute=20, 
+        minute=25, 
         timezone=asia_tz
     )
-    logger.info(f"Scheduled first reminder job at 15:20 IST (job id: {first_job.id})")
+    logger.info(f"Scheduled first reminder job at 15:25 IST (job id: {first_job.id})")
     second_job = scheduler.add_job(
         send_reminders, 
         'cron', 
