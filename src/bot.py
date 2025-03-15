@@ -816,6 +816,75 @@ def edit_attendance_update(update: Update, context: CallbackContext) -> int:
         logger.error(f"Error in edit_attendance_update: {str(e)}")
         return ConversationHandler.END
 
+# def send_reminders():
+#     """Sends reminders to all users."""
+#     try:
+#         ist_now = datetime.now(pytz.timezone('Asia/Kolkata'))
+#         logging.info(f"🔔 SENDING REMINDERS STARTED at {ist_now.strftime('%Y-%m-%d %H:%M:%S')} IST")
+        
+#         all_data = attendance_tracker.google_sheets.get_all_data()
+#         user_courses = {}
+#         users_count = 0
+#         successful_reminders = 0  # Initialize counter
+#         failed_reminders = 0  
+        
+#         for row in all_data:
+#             user_id = str(row['User ID']).strip()
+#             if user_id not in user_courses:
+#                 user_courses[user_id] = []
+#                 users_count+= 1
+#             user_courses[user_id].append(row)
+
+#         logging.info(f"Found {users_count} users to send reminders to")
+
+#         for user_id, courses in user_courses.items():
+#             attendance_status = "<b>Attendance Status:</b>\n"
+#             for i, course in enumerate(courses):
+#                 course_nickname = course['Course Nickname']
+#                 try:
+#                     present = int(course.get('Present', 0) or 0)
+#                     absent = int(course.get('Absent', 0) or 0)
+
+#                     total_classes = present + absent
+#                     attendance_percentage = (present / total_classes) * 100 if total_classes > 0 else 100.0
+
+#                     if attendance_percentage < attendance_tracker.attendance_threshold:
+#                         attendance_status += f"<b>{i + 1}. {course_nickname}:</b> ⚠️\n"
+#                         attendance_status += f"  <b>Attendance:</b> {attendance_percentage:.2f}%\n"
+#                         attendance_status += f"  You need to attend <b>at least {4*absent - present} more</b> classes to cross the 80% threshold.\n"
+#                         attendance_status += "\n"
+#                     else:
+#                         attendance_status += f"<b>{i + 1}. {course_nickname}:</b> ✅\n"
+#                         attendance_status += f"  <b>Attendance:</b> {attendance_percentage:.2f}%\n"
+#                         classes_left=max(0,math.floor((present- 4*absent)/4))
+#                         if classes_left >= 1:
+#                             attendance_status += f"  You can leave <b>{classes_left} more</b> classes & still cross the 80% threshold.\n"
+#                         else:
+#                             attendance_status += f"  You are in the safe zone. Keep up the good work! ✅ \n <i>Be Alert:</i> Leaving even 1 class can put you in low attendance.\n"
+#                         attendance_status += "\n"
+#                 except Exception as e:
+#                         logging.error(f"Error processing course {course_nickname} for user {user_id}: {e}")
+
+#             attendance_status += f"Please mark your attendance using /mark_attendance command if not updated for {datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%d.%B')}.\n"
+#             chat_id = courses[0].get('Chat ID')
+#             if chat_id:
+#                 try:
+#                     attendance_tracker.google_sheets.send_message(chat_id, attendance_status, parse_mode=ParseMode.HTML)
+#                     successful_reminders += 1
+#                     logging.info(f"Sent reminder to user {user_id}")
+#                 except Exception as e:
+#                     failed_reminders += 1
+#                     print(f"Error sending reminder to user {user_id}: {e}")
+#             else:
+#                 print(f"No chat ID found for user {user_id}. Skipping reminder.")
+    
+#             logging.info(f"🏁 SENDING REMINDERS COMPLETED: {successful_reminders} successful, {failed_reminders} failed")
+#         except Exception as e:
+#             logging.error(f"❌ ERROR SENDING REMINDERS: {str(e)}")
+#             # Print the full stack trace for better debugging
+#             import traceback
+#             logging.error(traceback.format_exc())
+
 def send_reminders():
     """Sends reminders to all users."""
     try:
@@ -825,66 +894,77 @@ def send_reminders():
         all_data = attendance_tracker.google_sheets.get_all_data()
         user_courses = {}
         users_count = 0
-        successful_reminders = 0  # Initialize counter
-        failed_reminders = 0  
+        successful_reminders = 0
+        failed_reminders = 0
         
         for row in all_data:
             user_id = str(row['User ID']).strip()
             if user_id not in user_courses:
                 user_courses[user_id] = []
-                users_count+= 1
+                users_count += 1
             user_courses[user_id].append(row)
-
+        
         logging.info(f"Found {users_count} users to send reminders to")
-
+        
         for user_id, courses in user_courses.items():
-            attendance_status = "<b>Attendance Status:</b>\n"
-            for i, course in enumerate(courses):
-                course_nickname = course['Course Nickname']
-                try:
-                    present = int(course.get('Present', 0) or 0)
-                    absent = int(course.get('Absent', 0) or 0)
-
-                    total_classes = present + absent
-                    attendance_percentage = (present / total_classes) * 100 if total_classes > 0 else 100.0
-
-                    if attendance_percentage < attendance_tracker.attendance_threshold:
-                        attendance_status += f"<b>{i + 1}. {course_nickname}:</b> ⚠️\n"
-                        attendance_status += f"  <b>Attendance:</b> {attendance_percentage:.2f}%\n"
-                        attendance_status += f"  You need to attend <b>at least {4*absent - present} more</b> classes to cross the 80% threshold.\n"
-                        attendance_status += "\n"
-                    else:
-                        attendance_status += f"<b>{i + 1}. {course_nickname}:</b> ✅\n"
-                        attendance_status += f"  <b>Attendance:</b> {attendance_percentage:.2f}%\n"
-                        classes_left=max(0,math.floor((present- 4*absent)/4))
-                        if classes_left >= 1:
-                            attendance_status += f"  You can leave <b>{classes_left} more</b> classes & still cross the 80% threshold.\n"
+            try:
+                attendance_status = "<b>Attendance Status:</b>\n"
+                valid_courses = 0
+                
+                for i, course in enumerate(courses):
+                    try:
+                        course_nickname = course.get('Course Nickname', 'Unknown')
+                        present = int(course.get('Present', 0) or 0)
+                        absent = int(course.get('Absent', 0) or 0)
+                        
+                        total_classes = present + absent
+                        attendance_percentage = (present / total_classes) * 100 if total_classes > 0 else 100.0
+                        
+                        if attendance_percentage < attendance_tracker.attendance_threshold:
+                            attendance_status += f"<b>{valid_courses + 1}. {course_nickname}:</b> ⚠️\n"
+                            attendance_status += f"  <b>Attendance:</b> {attendance_percentage:.2f}%\n"
+                            attendance_status += f"  You need to attend <b>at least {4*absent - present} more</b> classes to cross the 80% threshold.\n"
+                            attendance_status += "\n"
                         else:
-                            attendance_status += f"  You are in the safe zone. Keep up the good work! ✅ \n <i>Be Alert:</i> Leaving even 1 class can put you in low attendance.\n"
-                        attendance_status += "\n"
-                except Exception as e:
-                        logging.error(f"Error processing course {course_nickname} for user {user_id}: {e}")
-
-            attendance_status += f"Please mark your attendance using /mark_attendance command if not updated for {datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%d.%B')}.\n"
-            chat_id = courses[0].get('Chat ID')
-            if chat_id:
-                try:
-                    attendance_tracker.google_sheets.send_message(chat_id, attendance_status, parse_mode=ParseMode.HTML)
-                    successful_reminders += 1
-                    logging.info(f"Sent reminder to user {user_id}")
-                except Exception as e:
-                    failed_reminders += 1
-                    print(f"Error sending reminder to user {user_id}: {e}")
-            else:
-                print(f"No chat ID found for user {user_id}. Skipping reminder.")
+                            attendance_status += f"<b>{valid_courses + 1}. {course_nickname}:</b> ✅\n"
+                            attendance_status += f"  <b>Attendance:</b> {attendance_percentage:.2f}%\n"
+                            classes_left = max(0, math.floor((present - 4*absent)/4))
+                            if classes_left >= 1:
+                                attendance_status += f"  You can leave <b>{classes_left} more</b> classes & still cross the 80% threshold.\n"
+                            else:
+                                attendance_status += f"  You are in the safe zone. Keep up the good work! ✅\n"
+                                attendance_status += f"  <i>Be Alert:</i> Leaving even 1 class can put you in low attendance.\n"
+                            attendance_status += "\n"
+                        
+                        valid_courses += 1
+                    except Exception as e:
+                        logging.error(f"Error processing course data for user {user_id}: {str(e)}")
+                
+                if valid_courses > 0:
+                    attendance_status += f"Please mark your attendance using /mark_attendance command if not updated for {ist_now.strftime('%d %B')}.\n"
+                    
+                    chat_id = courses[0].get('Chat ID')
+                    if chat_id:
+                        try:
+                            attendance_tracker.google_sheets.send_message(chat_id, attendance_status, parse_mode=ParseMode.HTML)
+                            successful_reminders += 1
+                            logging.info(f"Sent reminder to user {user_id}")
+                        except Exception as e:
+                            failed_reminders += 1
+                            logging.error(f"Error sending reminder to user {user_id}: {str(e)}")
+                    else:
+                        logging.warning(f"No chat ID found for user {user_id}. Skipping reminder.")
+            except Exception as e:
+                failed_reminders += 1
+                logging.error(f"Error processing user {user_id}: {str(e)}")
+        
+        logging.info(f"🏁 SENDING REMINDERS COMPLETED: {successful_reminders} successful, {failed_reminders} failed")
     
-            logging.info(f"🏁 SENDING REMINDERS COMPLETED: {successful_reminders} successful, {failed_reminders} failed")
-        except Exception as e:
-            logging.error(f"❌ ERROR SENDING REMINDERS: {str(e)}")
-            # Print the full stack trace for better debugging
-            import traceback
-            logging.error(traceback.format_exc())
-
+    except Exception as e:
+        logging.error(f"❌ ERROR SENDING REMINDERS: {str(e)}")
+        import traceback
+        logging.error(traceback.format_exc())
+        
 def calculate_classes_needed(present, absent, safe_zone_attendance):
     total_classes = present + absent
     classes_needed = max(0,4*absent - present)
