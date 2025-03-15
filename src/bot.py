@@ -287,6 +287,7 @@ def help_command(update: Update, context: CallbackContext) -> None:
             "\n<b>Admin Commands:</b>\n"
             "<code>/block [user_id]</code> - Block a user from using the bot\n"
             "<code>/unblock [user_id]</code> - Unblock a previously blocked user\n"
+            "<code>/send_reminders</code> - Manually send reminders to all users\n"
             "<code>/reply [user_id] [message]</code> - Reply directly to a user\n"
             "<code>/announce</code> - Send an announcement to all users\n"
             "<code>/logs [hours]</code> - Get logs for the last N hours (default: 24)\n"
@@ -1102,6 +1103,23 @@ def request_phone_number(update: Update, context: CallbackContext) -> int:
     )
     return PHONE_VERIFICATION
 
+
+def send_reminders_command(update: Update, context: CallbackContext) -> None:
+    """Admin command to manually trigger reminders."""
+    user = update.effective_user
+    
+    # Check if admin
+    if str(user.id) != str(config.get('admin_telegram_id')):
+        update.message.reply_text("⚠️ You don't have permission to use this command.")
+        return
+    
+    update.message.reply_text("Manually sending reminders to all users...")
+    try:
+        send_reminders()
+        update.message.reply_text("✅ Reminders sent successfully!")
+    except Exception as e:
+        update.message.reply_text(f"❌ Error sending reminders: {str(e)}")
+        
 def handle_phone_number(update: Update, context: CallbackContext) -> int:
     """Handle the shared contact information."""
     user = update.message.from_user
@@ -1399,14 +1417,37 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("reply", reply_to_user))
     dispatcher.add_handler(announce_handler)
     dispatcher.add_handler(CommandHandler("logs", get_logs))
+    dispatcher.add_handler(CommandHandler("send_reminders", send_reminders_command))
     # Add handler for invalid inputs - this should be the last handler
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_invalid_input))
-
-    scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Kolkata'))
-    scheduler.add_job(send_reminders, 'cron', hour=20, minute=15, timezone=pytz.timezone('Asia/Kolkata'))  # Example time
-    scheduler.add_job(send_reminders, 'cron', hour=20, minute=35, timezone=pytz.timezone('Asia/Kolkata'))
-    scheduler.start()
     
+    
+    scheduler = BackgroundScheduler()
+try:
+    asia_tz = pytz.timezone('Asia/Kolkata')
+    first_job = scheduler.add_job(
+        send_reminders, 
+        'cron', 
+        hour=15, 
+        minute=05, 
+        timezone=asia_tz
+    )
+     logger.info(f"Scheduled second reminder job at 20:35 IST (job id: {first_job.id})")
+    second_job = scheduler.add_job(
+        send_reminders, 
+        'cron', 
+        hour=20, 
+        minute=15, 
+        timezone=asia_tz
+    )
+    logger.info(f"Scheduled second reminder job at 20:35 IST (job id: {second_job.id})")
+    scheduler.start()
+    logger.info("Scheduled reminders set for 3:05 PM and 8:15 PM IST")
+except Exception as e:
+    logger.error(f"Failed to start scheduler: {str(e)}")
+    logger.exception("Scheduler error details:")
+
+
     # Start the bot differently based on environment
     if os.getenv("RAILWAY_STATIC_URL"):
         # We're on Railway, use webhook
@@ -1434,10 +1475,6 @@ def main() -> None:
         updater.start_polling(clean=True)  # Use clean=True to drop pending updates
         
     updater.idle()
-    
-    scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Kolkata'))
-    scheduler.add_job(send_reminders, 'cron', hour=20, minute=15, timezone=pytz.timezone('Asia/Kolkata'))
-    scheduler.start()
 
     updater.start_polling()
     updater.idle()
