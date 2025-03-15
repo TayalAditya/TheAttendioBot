@@ -845,8 +845,8 @@ def send_reminders():
                     present = int(course.get('Present', 0) or 0)
                     absent = int(course.get('Absent', 0) or 0)
 
-                total_classes = present + absent
-                attendance_percentage = (present / total_classes) * 100 if total_classes > 0 else 100.0
+                    total_classes = present + absent
+                    attendance_percentage = (present / total_classes) * 100 if total_classes > 0 else 100.0
 
                 if attendance_percentage < attendance_tracker.attendance_threshold:
                     attendance_status += f"<b>{i + 1}. {course_nickname}:</b> ⚠️\n"
