@@ -98,11 +98,11 @@ class GoogleSheets:
         except Exception as e:
             print(f"Error updating cell: {e}")
 
-    def send_message(self, user_id, chat_id, text, parse_mode=None):
+    def send_message(self, user_id, text, parse_mode=None):
         """Sends a message to a Telegram user."""
         try:
-            self.bot.send_message(chat_id=user_id, text=text, parse_mode=parse_mode)
-            print(f"Message sent to chat ID {chat_id}: {text}")
+            self.bot.send_message(user_id, text=text, parse_mode=parse_mode)
+            print(f"Message sent to chat ID {user_id}: {text}")
         except Exception as e:
             print(f"Error sending message to chat ID {chat_id}: {e}")
 
