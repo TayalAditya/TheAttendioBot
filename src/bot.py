@@ -1429,10 +1429,10 @@ try:
         send_reminders, 
         'cron', 
         hour=15, 
-        minute=5, 
+        minute=15, 
         timezone=asia_tz
     )
-     logger.info(f"Scheduled second reminder job at 20:35 IST (job id: {first_job.id})")
+     logger.info(f"Scheduled first reminder job at 15:15 IST (job id: {first_job.id})")
     second_job = scheduler.add_job(
         send_reminders, 
         'cron', 
