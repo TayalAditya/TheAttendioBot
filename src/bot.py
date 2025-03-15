@@ -825,11 +825,14 @@ def send_reminders():
         all_data = attendance_tracker.google_sheets.get_all_data()
         user_courses = {}
         users_count = 0
+        successful_reminders = 0  # Initialize counter
+        failed_reminders = 0  
         
         for row in all_data:
             user_id = str(row['User ID']).strip()
             if user_id not in user_courses:
                 user_courses[user_id] = []
+                users_count+= 1
             user_courses[user_id].append(row)
 
         logging.info(f"Found {users_count} users to send reminders to")
@@ -838,8 +841,9 @@ def send_reminders():
             attendance_status = "<b>Attendance Status:</b>\n"
             for i, course in enumerate(courses):
                 course_nickname = course['Course Nickname']
-                present = int(course['Present'])
-                absent = int(course['Absent'])
+                try:
+                    present = int(course.get('Present', 0) or 0)
+                    absent = int(course.get('Absent', 0) or 0)
 
                 total_classes = present + absent
                 attendance_percentage = (present / total_classes) * 100 if total_classes > 0 else 100.0
@@ -858,23 +862,28 @@ def send_reminders():
                     else:
                         attendance_status += f"  You are in the safe zone. Keep up the good work! ✅ \n <i>Be Alert:</i> Leaving even 1 class can put you in low attendance.\n"
                     attendance_status += "\n"
+            except Exception as e:
+                    logging.error(f"Error processing course {course_nickname} for user {user_id}: {e}")
 
             attendance_status += f"Please mark your attendance using /mark_attendance command if not updated for {datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%d.%B')}.\n"
             chat_id = courses[0].get('Chat ID')
             if chat_id:
                 try:
                     attendance_tracker.google_sheets.send_message(chat_id, attendance_status, parse_mode=ParseMode.HTML)
+                    successful_reminders += 1
+                    logging.info(f"Sent reminder to user {user_id}")
                 except Exception as e:
+                    failed_reminders += 1
                     print(f"Error sending reminder to user {user_id}: {e}")
             else:
                 print(f"No chat ID found for user {user_id}. Skipping reminder.")
     
-    logging.info(f"🏁 SENDING REMINDERS COMPLETED: {successful_reminders} successful, {failed_reminders} failed")
-    except Exception as e:
-        logging.error(f"❌ ERROR SENDING REMINDERS: {str(e)}")
-        # Print the full stack trace for better debugging
-        import traceback
-        logging.error(traceback.format_exc())
+            logging.info(f"🏁 SENDING REMINDERS COMPLETED: {successful_reminders} successful, {failed_reminders} failed")
+        except Exception as e:
+            logging.error(f"❌ ERROR SENDING REMINDERS: {str(e)}")
+            # Print the full stack trace for better debugging
+            import traceback
+            logging.error(traceback.format_exc())
 
 def calculate_classes_needed(present, absent, safe_zone_attendance):
     total_classes = present + absent
