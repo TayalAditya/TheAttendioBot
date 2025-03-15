@@ -819,13 +819,20 @@ def edit_attendance_update(update: Update, context: CallbackContext) -> int:
 def send_reminders():
     """Sends reminders to all users."""
     try:
+        ist_now = datetime.now(pytz.timezone('Asia/Kolkata'))
+        logging.info(f"🔔 SENDING REMINDERS STARTED at {ist_now.strftime('%Y-%m-%d %H:%M:%S')} IST")
+        
         all_data = attendance_tracker.google_sheets.get_all_data()
         user_courses = {}
+        users_count = 0
+        
         for row in all_data:
             user_id = str(row['User ID']).strip()
             if user_id not in user_courses:
                 user_courses[user_id] = []
             user_courses[user_id].append(row)
+
+        logging.info(f"Found {users_count} users to send reminders to")
 
         for user_id, courses in user_courses.items():
             attendance_status = "<b>Attendance Status:</b>\n"
@@ -861,9 +868,13 @@ def send_reminders():
                     print(f"Error sending reminder to user {user_id}: {e}")
             else:
                 print(f"No chat ID found for user {user_id}. Skipping reminder.")
-
+    
+    logging.info(f"🏁 SENDING REMINDERS COMPLETED: {successful_reminders} successful, {failed_reminders} failed")
     except Exception as e:
-        print(f"Error sending reminders: {e}")
+        logging.error(f"❌ ERROR SENDING REMINDERS: {str(e)}")
+        # Print the full stack trace for better debugging
+        import traceback
+        logging.error(traceback.format_exc())
 
 def calculate_classes_needed(present, absent, safe_zone_attendance):
     total_classes = present + absent
@@ -1424,15 +1435,25 @@ def main() -> None:
 try:
     asia_tz = pytz.timezone('Asia/Kolkata')
     scheduler = BackgroundScheduler()
-    
+
+    # Add a test job right after the scheduler start to run 1 minute later
+    test_time = datetime.now(pytz.timezone('Asia/Kolkata')) + timedelta(minutes=1)
+    scheduler.add_job(
+        send_reminders,
+        'date',  # Run once at specific time
+        run_date=test_time,
+        id='test_reminder'
+    )
+    logger.info(f"Added test reminder job to run at {test_time.strftime('%H:%M:%S')}")
+
     first_job = scheduler.add_job(
         send_reminders, 
         'cron', 
-        hour=15, 
-        minute=25, 
+        hour=20, 
+        minute=15, 
         timezone=asia_tz
     )
-    logger.info(f"Scheduled first reminder job at 15:25 IST (job id: {first_job.id})")
+    logger.info(f"Scheduled first reminder job at 20:15 IST (job id: {first_job.id})")
     second_job = scheduler.add_job(
         send_reminders, 
         'cron', 
@@ -1440,9 +1461,8 @@ try:
         minute=15, 
         timezone=asia_tz
     )
-    logger.info(f"Scheduled second reminder job at 20:35 IST (job id: {second_job.id})")
     scheduler.start()
-    logger.info("Scheduled reminders set for 3:05 PM and 8:15 PM IST")
+    logger.info("Scheduled reminders set for 8:15 PM IST")
 except Exception as e:
     logger.error(f"Failed to start scheduler: {str(e)}")
     logger.exception("Scheduler error details:")
