@@ -27,17 +27,18 @@ Attendio Bot is a **Telegram-based attendance tracker** designed to help student
 ```
 TheAttendioBot
 ├── src
-│   ├── bot.py                # Main entry point for the Telegram bot
+│   ├── bot.py                # Main bot logic
 │   ├── google_sheets.py      # Google Sheets API integration
-│   ├── attendance_tracker.py # Handles attendance records
-│   ├── commands.py           # Defines Telegram bot commands
-│   └── utils
-│       ├── helpers.py        # Utility functions for the bot
-│       ├── config_loader.py  # Loads configuration settings
-│       └── logger.py         # Handles logging
-├── config.json               # Stores bot and API configurations
-├── requirements.txt          # List of required dependencies
-└── README.md                 # Documentation
+│   ├── attendance_tracker.py # Attendance tracking functions
+│   ├── config/               
+│   │   ├── logger_config.py  # Logger settings
+│   │   ├── settings.py       # Global config
+│   ├── utils/                
+│   │   ├── helpers.py        # Utility functions
+├── Procfile                   # Deployment configuration
+├── railway.json               # Railway deployment settings
+├── requirements.txt           # Dependencies
+├── README.md                  # Project documentation
 ```
 
 ---
