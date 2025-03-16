@@ -1,13 +1,7 @@
-Here's a polished and detailed README that showcases your expertise as an experienced GitHub developer while making the project look professional and well-documented. 🚀  
-
----
-
 # 📌 **Attendio Bot** – Your Smart Attendance Tracker  
 
-[![Telegram](https://img.shields.io/badge/Telegram-Bot-blue)](https://t.me/TheAttendioBot)  
-[![GitHub License](https://img.shields.io/github/license/TayalAditya/TheAttendioBot)](LICENSE)  
+[![Telegram](https://img.shields.io/badge/Telegram-Bot-blue)](https://t.me/TheAttendioBot)
 [![Contributors](https://img.shields.io/github/contributors/TayalAditya/TheAttendioBot)](https://github.com/TayalAditya/TheAttendioBot/graphs/contributors)  
-[![Stars](https://img.shields.io/github/stars/TayalAditya/TheAttendioBot?style=social)](https://github.com/TayalAditya/TheAttendioBot/stargazers)  
 
 ## 🚀 **About Attendio Bot**  
 
