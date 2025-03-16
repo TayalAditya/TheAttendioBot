@@ -1543,19 +1543,19 @@ def main() -> None:
             minute=15, 
             timezone=asia_tz
         )
-        logger.info(f"Scheduled first reminder job at 20:15 IST (job id: {first_job.id})")
+        logger.info(f"Scheduled reminder job at 20:15 IST (job id: {first_job.id})")
         
-        second_job = scheduler.add_job(
-            send_reminders, 
-            'cron', 
-            hour=20, 
-            minute=35,  # Changed from 15 to 35 for second job
-            timezone=asia_tz
-        )
-        logger.info(f"Scheduled second reminder job at 20:35 IST (job id: {second_job.id})")
+        # second_job = scheduler.add_job(
+        #     send_reminders, 
+        #     'cron', 
+        #     hour=20, 
+        #     minute=35,  # Changed from 15 to 35 for second job
+        #     timezone=asia_tz
+        # )
+        # logger.info(f"Scheduled second reminder job at 20:35 IST (job id: {second_job.id})")
         
         scheduler.start()
-        logger.info("Scheduled reminders set for 8:15 PM and 8:35 PM IST")
+        logger.info("Scheduled reminders set for 8:15 PM IST")
     except Exception as e:
         logger.error(f"Failed to start scheduler: {str(e)}")
         logger.exception("Scheduler error details:")
