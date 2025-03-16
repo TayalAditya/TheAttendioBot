@@ -1526,15 +1526,15 @@ def main() -> None:
         scheduler = BackgroundScheduler()
     
         # Add a test job right after the scheduler start to run 1 minute later
-        test_time = datetime.now(pytz.timezone('Asia/Kolkata')) + timedelta(minutes=1)
-        scheduler.add_job(
-            send_reminders,
-            'date',  # Run once at specific time
-            run_date=test_time,
-            timezone=asia_tz,  # Add this timezone parameter
-            id='test_reminder'
-        )
-        logger.info(f"Added test reminder job to run at {test_time.strftime('%H:%M:%S')}")
+        # test_time = datetime.now(pytz.timezone('Asia/Kolkata')) + timedelta(minutes=1)
+        # scheduler.add_job(
+        #     send_reminders,
+        #     'date',  # Run once at specific time
+        #     run_date=test_time,
+        #     timezone=asia_tz,  # Add this timezone parameter
+        #     id='test_reminder'
+        # )
+        # logger.info(f"Added test reminder job to run at {test_time.strftime('%H:%M:%S')}")
     
         first_job = scheduler.add_job(
             send_reminders, 
