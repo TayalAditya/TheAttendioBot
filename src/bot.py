@@ -500,8 +500,10 @@ def save_course(update: Update, context: CallbackContext) -> int:
     user_id = user.id
     
     # Split the input by newlines to get multiple course names
-    course_names = update.message.text.strip().split('\n')
+    course_name = update.message.text.strip().split('\n')
+    course_names = [name for name in course_name if not name.strip().isdigit()]
     
+   
     if not course_names or all(name.strip() == '' for name in course_names):
         update.message.reply_text("Please enter at least one valid course nickname.")
         return ConversationHandler.END
