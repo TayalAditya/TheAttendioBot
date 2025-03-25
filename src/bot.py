@@ -1521,9 +1521,9 @@ def main() -> None:
     # Add handler for invalid inputs - this should be the last handler
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_invalid_input))
     
-    try:
-        asia_tz = pytz.timezone('Asia/Kolkata')
-        scheduler = BackgroundScheduler()
+    #try:
+        # asia_tz = pytz.timezone('Asia/Kolkata')
+        # scheduler = BackgroundScheduler()
     
         # Add a test job right after the scheduler start to run 1 minute later
         # test_time = datetime.now(pytz.timezone('Asia/Kolkata')) + timedelta(minutes=1)
@@ -1536,14 +1536,14 @@ def main() -> None:
         # )
         # logger.info(f"Added test reminder job to run at {test_time.strftime('%H:%M:%S')}")
     
-        first_job = scheduler.add_job(
-            send_reminders, 
-            'cron', 
-            hour=20, 
-            minute=15, 
-            timezone=asia_tz
-        )
-        logger.info(f"Scheduled reminder job at 20:15 IST (job id: {first_job.id})")
+        #first_job = scheduler.add_job(
+        #    send_reminders, 
+        #   'cron', 
+        #    hour=20, 
+        #    minute=15, 
+        #    timezone=asia_tz
+        # )
+        #logger.info(f"Scheduled reminder job at 20:15 IST (job id: {first_job.id})")
         
         # second_job = scheduler.add_job(
         #     send_reminders, 
@@ -1554,11 +1554,11 @@ def main() -> None:
         # )
         # logger.info(f"Scheduled second reminder job at 20:35 IST (job id: {second_job.id})")
         
-        scheduler.start()
-        logger.info("Scheduled reminders set for 8:15 PM IST")
-    except Exception as e:
-        logger.error(f"Failed to start scheduler: {str(e)}")
-        logger.exception("Scheduler error details:")
+        # scheduler.start()
+        # logger.info("Scheduled reminders set for 8:15 PM IST")
+    # except Exception as e:
+        # logger.error(f"Failed to start scheduler: {str(e)}")
+        # logger.exception("Scheduler error details:")
     
     
     # Start the bot differently based on environment
