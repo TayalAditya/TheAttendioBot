@@ -487,6 +487,7 @@ def attendance_response(update: Update, context: CallbackContext) -> int:
 def add_course_start(update: Update, context: CallbackContext) -> int:
     update.message.reply_text(
         'Please enter the course nickname(s):\n\n'
+        'Courses should have atleast one alphabet, course names with just integers will be rejected automatically.\n\n'
         'You can add multiple courses by putting each course on a new line.\n'
         'For example:\n'
         'DSA\n'
